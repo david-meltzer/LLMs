@@ -9,4 +9,4 @@ huggingface_hub
 ninja
 packaging
 safetensors>=0.3.1
-flash-attn --no-build-isolation
+flash-attn
