@@ -432,7 +432,12 @@ def training_function(args):
             replace_attn_with_flash_attn()
         else:
             raise ValueError('GPU is not compatible with flash attention. Use Ampere device.')
-        
+    
+    if args.use_peft:
+        if args.repo_id: 
+            args.repo_id += f'_r_{args.lora_r}_alpha_{args.lora_alpha}'
+        if args.run_name:
+            args.run_name += f'_r_{args.lora_r}_alpha_{args.lora_alpha}'
 
     if args.report_to_wandb:
         wandb.login(key=args.wandb_token)
@@ -510,10 +515,7 @@ def training_function(args):
         fp16 = False
 
     # Define training args
-    
-    if args.repo_id and args.use_peft:
-        args.repo_id += f'_r_{args.lora_r}_alpha_{args.lora_alpha}'
-    
+
     training_args = TrainingArguments(
         output_dir = args.output_dir,
         #overwrite_output_dir=True if get_last_checkpoint(args.output_dir) is not None else False,
@@ -642,5 +644,3 @@ if __name__ == "__main__":
         #tokenizer = AutoTokenizer.from_pretrained(args.model_id,
         #                                          use_auth_token=args.hf_token)
         #tokenizer.save_pretrained(save_dir)
-
-
