@@ -56,13 +56,13 @@ def parse_arge():
     parser.add_argument(
         "--output_dir", 
         type=str,
-        #default=os.environ["SM_MODEL_DIR"]
+        default=os.environ["SM_MODEL_DIR"]
     )
 
     parser.add_argument(
         "--output_data_dir",
         type=str,
-        #default=os.environ["SM_OUTPUT_DATA_DIR"]
+        default=os.environ["SM_OUTPUT_DATA_DIR"]
     )
 
     parser.add_argument(
