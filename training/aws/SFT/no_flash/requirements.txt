@@ -1,0 +1,9 @@
+wandb
+transformers==4.31.0
+datasets==2.13.0
+peft==0.4.0
+accelerate==0.21.0
+bitsandbytes==0.41.1
+trl==0.4.7
+huggingface_hub
+safetensors>=0.3.1
