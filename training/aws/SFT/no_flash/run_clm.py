@@ -285,6 +285,13 @@ def parse_arge():
         help='Set to 1 to compile model. Else set to 0.'
     )
     
+    parser.add_argument(
+        '--metric_for_best_model',
+        type=str,
+        default='bertscore_f1',
+        help='metric on evaluation set used to choose best model'
+    )
+    
     args, extra = parser.parse_known_args()
     
     print(f'args is {args}')
@@ -410,6 +417,29 @@ def sft_collator(tokenizer, response_template = "### Assistant:"):
     
     return DataCollatorForCompletionOnlyLM(response_template=response_template, tokenizer=tokenizer)
 
+def compute_metrics(eval_pred):
+        predictions,labels=eval_pred
+        decoded_preds=self.tokenizer.batch_decode(predictions)
+        labels=np.where(labels!=-100,labels,self.tokenizer.pad_token_id)
+        decoded_labels=self.tokenizer.batch_decode(labels,skip_special_tokens=True)
+        
+        result={}
+
+        result['bertscore'] = bertscore.compute(predictions=decoded_preds,
+                                            references=decoded_labels,
+                                            lang='en')
+        
+        result['rouge'] = rouge.compute(predictions=decoded_preds,
+                                references=decoded_labels)
+
+        output={}
+        for k in result:
+            for met in result[k]:
+                if met!='hashcode':
+                    output[k+'_'+met]=np.mean(result[k][met])
+
+        return output
+
 def training_function(args):
     # set seed
     set_seed(args.seed)
@@ -481,8 +511,6 @@ def training_function(args):
     if args.gradient_checkpointing:
         model.gradient_checkpointing_enable()
 
-
-        
     tokenizer = AutoTokenizer.from_pretrained(
         args.model_id,
         use_auth_token=args.hf_token
@@ -533,6 +561,7 @@ def training_function(args):
         #max_grad_norm=0.3,
         hub_model_id=args.repo_id,
         torch_compile=args.torch_compile,
+        metric_for_best_model=args.metric_for_best_model
     )
 
     if args.use_peft:
@@ -542,6 +571,9 @@ def training_function(args):
     
     #if args.torch_compile:
     #    model = torch.compile(model)
+    
+    rouge=evaluate.load('rouge')
+    bertscore=evaluate.load('bertscore')
 
     trainer = SFTTrainer(
         model,
@@ -553,7 +585,8 @@ def training_function(args):
         formatting_func = formatting_prompts_func,
         #dataset_text_field='QA',
         packing = False,
-        data_collator = collator
+        data_collator = collator,
+        compute_metrics = compute_metrics
         )
 
     # Start training
@@ -581,7 +614,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 #        model.push_to_hub(args.repo_id)
 #        tokenizer.push_to_hub(args.repo_id)
