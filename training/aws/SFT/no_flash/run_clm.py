@@ -500,7 +500,7 @@ def training_function(args):
 
     training_args = TrainingArguments(
         output_dir = args.output_dir,
-        #overwrite_output_dir=True if get_last_checkpoint(args.output_dir) is not None else False,
+        overwrite_output_dir=True if get_last_checkpoint(args.output_dir) is not None else False,
         per_device_train_batch_size = args.per_device_train_batch_size,
         per_device_eval_batch_size = args.per_device_eval_batch_size,
         bf16 = True if args.bf16 else False,  # Use BF16 if available
@@ -557,7 +557,12 @@ def training_function(args):
         )
 
     # Start training
-    trainer.train()
+    if get_last_checkpoint(args.output_dir) is not None:
+        logger.info("***** continue training *****")
+        last_checkpoint = get_last_checkpoint(args.output_dir)
+        trainer.train(resume_from_checkpoint=last_checkpoint)
+    else:
+        trainer.train()
 
     if args.repo_id:
         print(f'repo is {args.repo_id}')
