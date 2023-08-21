@@ -11,6 +11,7 @@ from transformers import (
     TrainingArguments,
     TrainerCallback,
 )
+import evaluate
 
 from datasets import load_from_disk
 import torch

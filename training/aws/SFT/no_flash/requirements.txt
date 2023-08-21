@@ -7,3 +7,7 @@ bitsandbytes==0.41.1
 trl==0.4.7
 huggingface_hub
 safetensors>=0.3.1
+bert_score
+evaluate
+rouge_score
+nltk
