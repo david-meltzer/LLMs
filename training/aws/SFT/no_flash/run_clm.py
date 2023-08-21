@@ -558,6 +558,7 @@ def training_function(args):
 
     # Start training
     if get_last_checkpoint(args.output_dir) is not None:
+        print("***** continue training *****")
         logger.info("***** continue training *****")
         last_checkpoint = get_last_checkpoint(args.output_dir)
         trainer.train(resume_from_checkpoint=last_checkpoint)
