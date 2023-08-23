@@ -12,6 +12,7 @@ from transformers import (
     TrainerCallback,
 )
 import evaluate
+import pandas as pd
 
 from datasets import load_from_disk
 import torch
@@ -29,6 +30,24 @@ from peft import (
 from peft.tuners.lora import LoraLayer
 import wandb
 from transformers.trainer_utils import get_last_checkpoint
+import torch.distributed as dist
+
+def safe_save_model_for_hf_trainer(trainer: Trainer, tokenizer: AutoTokenizer, output_dir: str):
+    """Helper method to save model for HF Trainer."""
+    # see: https://github.com/tatsu-lab/stanford_alpaca/issues/65
+    from torch.distributed.fsdp import (
+        FullyShardedDataParallel as FSDP,
+        FullStateDictConfig,
+        StateDictType,
+    )
+
+    model = trainer.model
+    save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+    with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT, save_policy):
+        cpu_state_dict = model.state_dict()
+    if trainer.args.should_save:
+        trainer._save(output_dir, state_dict=cpu_state_dict)  # noqa
+        tokenizer.save_pretrained(output_dir)
 
 
 def parse_arge():
@@ -286,12 +305,24 @@ def parse_arge():
         help='Set to 1 to compile model. Else set to 0.'
     )
     
-    parser.add_argument(
-        '--metric_for_best_model',
-        type=str,
-        default='bertscore_f1',
-        help='metric on evaluation set used to choose best model'
-    )
+#    parser.add_argument("--fsdp",
+#                        type=str,
+#                        default=None,
+#                        help="Whether to use fsdp.")
+#    
+#    parser.add_argument(
+#        "--fsdp_transformer_layer_cls_to_wrap",
+#        type=str,
+#        default=None,
+#        help="Which transformer layer to wrap with fsdp.",
+#    )
+    
+    #parser.add_argument(
+    #    '--metric_for_best_model',
+    #    type=str,
+    #    default='bertscore_f1',
+    #    help='metric on evaluation set used to choose best model'
+    #)
     
     args, extra = parser.parse_known_args()
     
@@ -419,27 +450,32 @@ def sft_collator(tokenizer, response_template = "### Assistant:"):
     return DataCollatorForCompletionOnlyLM(response_template=response_template, tokenizer=tokenizer)
 
 def compute_metrics(eval_pred):
-        predictions,labels=eval_pred
-        decoded_preds=self.tokenizer.batch_decode(predictions)
-        labels=np.where(labels!=-100,labels,self.tokenizer.pad_token_id)
-        decoded_labels=self.tokenizer.batch_decode(labels,skip_special_tokens=True)
-        
-        result={}
+    
+    rouge=evaluate.load('rouge')
+    bertscore=evaluate.load('bertscore')
+    
+    predictions,labels=eval_pred
+    decoded_preds=self.tokenizer.batch_decode(predictions)
+    labels=np.where(labels!=-100,labels,self.tokenizer.pad_token_id)
+    decoded_labels=self.tokenizer.batch_decode(labels,skip_special_tokens=True)
 
-        result['bertscore'] = bertscore.compute(predictions=decoded_preds,
-                                            references=decoded_labels,
-                                            lang='en')
-        
-        result['rouge'] = rouge.compute(predictions=decoded_preds,
-                                references=decoded_labels)
+    result={}
 
-        output={}
-        for k in result:
-            for met in result[k]:
-                if met!='hashcode':
-                    output[k+'_'+met]=np.mean(result[k][met])
+    result['bertscore'] = bertscore.compute(predictions=decoded_preds,
+                                        references=decoded_labels,
+                                        lang='en',
+                                            model_type="distilbert-base-uncased")
 
-        return output
+    result['rouge'] = rouge.compute(predictions=decoded_preds,
+                            references=decoded_labels)
+
+    output={}
+    for k in result:
+        for met in result[k]:
+            if met!='hashcode':
+                output[k+'_'+met]=np.mean(result[k][met])
+
+    return output
 
 def training_function(args):
     # set seed
@@ -467,7 +503,7 @@ def training_function(args):
     dataset = load_from_disk(args.dataset_path)
     # load model from the hub with a bnb config
     
-    if args.load_in_4bit: 
+    if args.load_in_4bit:
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
@@ -524,6 +560,8 @@ def training_function(args):
         fp16 = True
     else:
         fp16 = False
+        
+    
 
     # Define training args
 
@@ -562,7 +600,10 @@ def training_function(args):
         #max_grad_norm=0.3,
         hub_model_id=args.repo_id,
         torch_compile=args.torch_compile,
-        metric_for_best_model=args.metric_for_best_model
+        #metric_for_best_model=args.metric_for_best_model,
+        ddp_timeout=7200,
+#        fsdp=args.fsdp,
+#        fsdp_transformer_layer_cls_to_wrap=args.fsdp_transformer_layer_cls_to_wrap,
     )
 
     if args.use_peft:
@@ -573,8 +614,6 @@ def training_function(args):
     #if args.torch_compile:
     #    model = torch.compile(model)
     
-    rouge=evaluate.load('rouge')
-    bertscore=evaluate.load('bertscore')
 
     trainer = SFTTrainer(
         model,
@@ -587,8 +626,12 @@ def training_function(args):
         #dataset_text_field='QA',
         packing = False,
         data_collator = collator,
-        compute_metrics = compute_metrics
+        #compute_metrics = compute_metrics
         )
+    
+    #original_performance = trainer.evaluate()
+    #wandb.log({'initial-performance': wandb.Table(dataframe=pd.DataFrame(original_performance, index=["Performance"]))})
+
 
     # Start training
     if get_last_checkpoint(args.output_dir) is not None:
@@ -604,6 +647,12 @@ def training_function(args):
         eval_result = trainer.evaluate()
         trainer.create_model_card(model_name=args.repo_id)
         trainer.push_to_hub()
+        
+    #final_performance = trainer.evaluate()
+    #wandb.log({'final-performance': wandb.Table(dataframe=pd.DataFrame(final_performance, index=["Performance"]))})
+    
+    #safe_save_model_for_hf_trainer(trainer, tokenizer, args.output_dir)
+    #dist.barrier()
     trainer.save_model(args.output_dir)
 
 def main():

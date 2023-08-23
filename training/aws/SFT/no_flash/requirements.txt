@@ -1,5 +1,6 @@
 wandb
-transformers==4.31.0
+transformers>=4.31.0
+torch==2.0.1
 datasets==2.13.0
 peft==0.4.0
 accelerate==0.21.0
@@ -11,3 +12,4 @@ bert_score
 evaluate
 rouge_score
 nltk
+tokenizers>=0.13.3
