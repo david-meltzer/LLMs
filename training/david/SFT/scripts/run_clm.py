@@ -314,6 +314,14 @@ def parse_arge():
         default=0,
         help='Set to 1 to use flash-attention'
     )
+
+    parser.add_argument(
+        '--resume_from_checkpoint',
+        type = int,
+        default =0,
+        help ='set to 1 to resume from latest checkpoint.'
+
+    )
     
 #    parser.add_argument("--fsdp",
 #                        type=str,
@@ -528,10 +536,12 @@ def training_function(args):
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
 
-    else:
+    elif args.load_in_8bit:
         bnb_config = BitsAndBytesConfig(
             load_in_8bit=True
         )
+    else:
+        bnb_config=None
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model_id,
@@ -539,7 +549,7 @@ def training_function(args):
         if args.gradient_checkpointing
         else True,  # this is needed for gradient checkpointing
         device_map="auto",
-        quantization_config=bnb_config,
+        quantization_config=bnb_config if args.use_peft else None,
         use_auth_token=args.hf_token
     )
     
@@ -549,16 +559,18 @@ def training_function(args):
     modules = find_all_linear_names(model)
     print(f"Found {len(modules)} modules to quantize: {modules}")
     
-    peft_config = LoraConfig(
-        r=args.lora_r,
-        lora_alpha=args.lora_alpha,
-        target_modules=modules,
-        lora_dropout=args.lora_dropout,
-        bias="none",
-        task_type=TaskType.CAUSAL_LM,
-    )
+    if args.use_peft:
+        peft_config = LoraConfig(
+            r=args.lora_r,
+            lora_alpha=args.lora_alpha,
+            target_modules=modules,
+            lora_dropout=args.lora_dropout,
+            bias="none",
+            task_type=TaskType.CAUSAL_LM,
+        )
 
-    model = prepare_model_for_kbit_training(
+    if args.load_in_8bit or args.load_in_4bit:
+        model = prepare_model_for_kbit_training(
         model, use_gradient_checkpointing=args.gradient_checkpointing
     )
     
@@ -637,6 +649,14 @@ def training_function(args):
     #if args.torch_compile:
     #    model = torch.compile(model)
     
+    train_dataset = dataset['train']
+    eval_dataset = dataset['validation']
+    
+    train_dataset.set_format('torch')
+    eval_dataset.set_format('torch')
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
     trainer = SFTTrainer(
         model,
@@ -652,10 +672,11 @@ def training_function(args):
         #compute_metrics = compute_metrics
         )
     
-    original_performance = trainer.evaluate()
-    wandb.log({'initial-performance': wandb.Table(dataframe=pd.DataFrame(original_performance, index=["Performance"]))})
+    if not args.resume_from_checkpoint:
+        original_performance = trainer.evaluate()
+        wandb.log({'initial-performance': wandb.Table(dataframe=pd.DataFrame(original_performance, index=["Performance"]))})
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint = bool(args.resume_from_checkpoint))
 
     if args.repo_id:
         print(f'repo is {args.repo_id}')
