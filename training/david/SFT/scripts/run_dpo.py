@@ -11,7 +11,6 @@ from transformers import (
     TrainingArguments,
     TrainerCallback,
 )
-import evaluate
 import pandas as pd
 
 from datasets import load_from_disk
@@ -22,7 +21,9 @@ from huggingface_hub import login, HfFolder
 
 from trl import (DPOTrainer, 
                  DataCollatorForCompletionOnlyLM,
-                 DPODataCollatorWithPadding)
+                 )
+from trl.trainer.dpo_trainer import DPODataCollatorWithPadding
+
 from peft import (
         get_peft_model,
         LoraConfig,
@@ -74,11 +75,6 @@ def parse_arge():
         type=str,
         help='name of huggingface repo to push model to.'
     )
-
-    parser.add_argument(
-        "--hub_strategy",
-        type=str,
-        default=None)
 
     parser.add_argument(
         "--output_dir", 
@@ -359,6 +355,12 @@ def parse_arge():
         type=float,
         help='temperature parameter in DPO loss.'
     )
+
+    parser.add_argument(
+        '--hub_strategy',
+        type=str,
+        default='every_save'
+    )
     
 #    parser.add_argument("--fsdp",
 #                        type=str,
@@ -510,6 +512,8 @@ def training_function(args):
         quantization_config=bnb_config if args.use_peft else None,
         use_auth_token=args.hf_token
     )
+
+    model.train()
     
     model.config.pretraining_tp = 1
     
@@ -640,9 +644,6 @@ def training_function(args):
         eval_result = dpo_trainer.evaluate()
         dpo_trainer.create_model_card(model_name=args.repo_id)
         dpo_trainer.push_to_hub()
-        
-    final_performance = dpo_trainer.evaluate()
-    wandb.log({'final-performance': wandb.Table(dataframe=pd.DataFrame(final_performance, index=["Performance"]))})
     
     dpo_trainer.save_model(args.output_dir)
 
