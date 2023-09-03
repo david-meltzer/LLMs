@@ -1,3 +1,0 @@
-[submodule "inference/FastChat"]
-	path = inference/FastChat
-	url = https://github.com/lm-sys/FastChat
