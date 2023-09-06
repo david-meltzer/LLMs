@@ -40,6 +40,8 @@ from utils.llama_patch import replace_attn_with_flash_attn
 from utils.llama_patch import forward
 from utils.llama_patch import upcast_layer_for_flash_attention
 
+from utils.dpo_margin import DPOTrainer_with_margins
+
 def safe_save_model_for_hf_trainer(trainer: Trainer, tokenizer: AutoTokenizer, output_dir: str):
     """Helper method to save model for HF Trainer."""
     # see: https://github.com/tatsu-lab/stanford_alpaca/issues/65
@@ -360,6 +362,20 @@ def parse_arge():
         type=str,
         default='every_save'
     )
+
+    parser.add_argument(
+        '--include_margin',
+        type = int,
+        default = 0,
+        help = 'set to 1 to include margin in training loss.'
+    )
+
+    parser.add_argument(
+        '--rho',
+        type=float,
+        default=1,
+        help='proportionality factor for margin.'
+    )
     
 #    parser.add_argument("--fsdp",
 #                        type=str,
@@ -622,17 +638,29 @@ def training_function(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    dpo_trainer = DPOTrainer(
-        model,
-        args=training_args,
-        beta=args.beta,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        tokenizer=tokenizer,
-        max_prompt_length=args.max_prompt_length,
-        max_length=args.max_length,
-        truncation_mode=args.truncation_mode
-    )
+    if args.use_margin:
+        dpo_trainer = DPOTrainer(
+            model,
+            args=training_args,
+            beta=args.beta,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=tokenizer,
+            max_prompt_length=args.max_prompt_length,
+            max_length=args.max_length,
+            truncation_mode=args.truncation_mode
+        )
+    else:
+        dpo_trainer = DPOTrainer_with_margins(model,
+            args=training_args,
+            beta=args.beta,
+            rho=args.rho,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=tokenizer,
+            max_prompt_length=args.max_prompt_length,
+            max_length=args.max_length,
+            truncation_mode=args.truncation_mode)
     
     if not args.resume_from_checkpoint:
         original_performance = dpo_trainer.evaluate()
