@@ -181,12 +181,12 @@ class DPODataCollatorWithPadding_with_margin:
                                                         score_rejected,
                                                         weight)
 
-            print(f'batch element is {batch_element}')
+            #print(f'batch element is {batch_element}')
             tokenized_batch.append(batch_element)
-            print(f'tokenized_batch is {tokenized_batch}')
+            #print(f'tokenized_batch is {tokenized_batch}')
         # return collated batch
 
-        print(f'collated output is {self.collate(tokenized_batch)}')
+        #print(f'collated output is {self.collate(tokenized_batch)}')
 
         return self.collate(tokenized_batch)
 
@@ -347,14 +347,14 @@ class DPOTrainer_with_margins(DPOTrainer):
             logits = pi_logratios - ref_logratios
             device = logits.device
 
-            margin = torch.log(torch.tensor(scores_accepted).to(device)-
-                               torch.tensor(scores_rejected).to(device))
+            margin = torch.log(scores_accepted.to(device)-
+                               scores_rejected.to(device))
 
             #print(f'policy_chosen_logps is {policy_chosen_logps}')
 
             losses = -F.logsigmoid(self.beta * logits - self.rho*margin)
 
-            losses *= torch.tensor(weights).to(device)
+            losses *= weights.to(device)
             chosen_rewards = self.beta * (policy_chosen_logps - reference_chosen_logps).detach()
             rejected_rewards = self.beta * (policy_rejected_logps - reference_rejected_logps).detach()
 

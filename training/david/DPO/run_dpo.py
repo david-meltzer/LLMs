@@ -364,7 +364,7 @@ def parse_arge():
     )
 
     parser.add_argument(
-        '--include_margin',
+        '--use_margin',
         type = int,
         default = 0,
         help = 'set to 1 to include margin in training loss.'
@@ -662,9 +662,9 @@ def training_function(args):
             max_length=args.max_length,
             truncation_mode=args.truncation_mode)
     
-    if not args.resume_from_checkpoint:
-        original_performance = dpo_trainer.evaluate()
-        wandb.log({'initial-performance': wandb.Table(dataframe=pd.DataFrame(original_performance, index=["Performance"]))})
+    #if not args.resume_from_checkpoint:
+    #    original_performance = dpo_trainer.evaluate()
+    #    wandb.log({'initial-performance': wandb.Table(dataframe=pd.DataFrame(original_performance, index=["Performance"]))})
 
     dpo_trainer.train(resume_from_checkpoint = bool(args.resume_from_checkpoint))
 
