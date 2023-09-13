@@ -4,7 +4,7 @@
 %\geometry{landscape}                		% Activate for rotated page geometry
 %\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
 \usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
-								% TeX will automatically convert eps --> pdf in pdflatex		
+								% TeX will automatically convert eps -> pdf in pdflatex		
 \usepackage{amssymb}
 \usepackage{hhline}
 %SetFonts
@@ -26,14 +26,37 @@
 \maketitle
 \section{Introduction}
 
-In this report we'll summarize the main results we have obtained on training a Llama-2 model to produce safe and simple text.
-Please feel free to add the results of any experiments. 
+In this project we will explore how to build a LLM that answers questions in a safe and simple ($S^{2}$) way.
+To do this, we will fine-tune LLMs on what we call safe and simple 
 
-\section{Dataset Analysis}
+\section{Datasets}
+\subsection{Sources}
+The two sources of our datasets are the ELI5 dataset and Simple Wikipedia.
+In this section we will go into detail on the form of these datasets and in the next section we will explain how we filtered them. 
 
+The ELI5 dataset gets its name from the subreddit Explain Like I'm Five (r/ELI5) on reddit.com.
+The stated goal of the ELI5 subreddit is to provide a place where people can ask questions on a wide variety of topics and receive a layperson-friendly explanation.
+Commentators are requested to answer a question without assuming ``knowledge beyond a typical secondary education program" and in general to keep answers clear and simple.
+The ELI5 dataset also contains question/answer pairs from the r/AskHistorians and r/AskScience subreddits. The r/AskHistorians is well-known to be a well-moderated community where answers are particularly in-depth and clear. The quality of posts on r/AskScience is also high and users generally receive clear answers to fairly technical questions.
+We can generally use the ELI5 dataset to train a question/answer model by using the title and body of the post as the question and highly-voted comments as the answers.
+
+Simple Wikipedia is a version of Wikipedia where users are encouraged to write articles using basic English.
+On the Simple Wikipedia homepage they write: ``The Simple English Wikipedia is for everyone, such as children and adults who are learning English."
+They also encourage users to write shorter sentences, while not necessarily requiring that the articles also be short.
+In particular, the focus is that the articles are written with simple words and grammar, but do not necessarily contain "basic information".
+Unlike the ELI5 dataset, we can not use the Simple Wikipedia dataset out of the box to train a question-answering model since articles are not typically written in that style.
+Instead, we will use GPT-3.5 to generate questions whose answer is contained in the first few paragraphs of the Simple Wikipedia article.
+This is a very general and powerful idea which allows us to use large LLMs to generate whole new datasets from existing text.
+A nice feature of this method is that only the question is AI-generated, the answer itself is simply human-written text which has been repurposed for a new task.
+
+\subsection{Dataset Types}
+The goal of 
 
 
 \subsection{Filtering}
+In order to train a model which answers questions in a safe and simple way, we need to filter our
+
+
 \subsection{EDA}
 \section{Model and Training}
 \section{SFT Inference Results}
@@ -42,7 +65,7 @@ In this section we will summarize the results of Llama-2 models fine-tuned using
 \subsection{HuggingFace Leaderboard}
 First I'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
 The leaderboard is a wrapper for the ``Eleuther AI Language Model Evaluation Harness". 
-Specifically, the leaderboard measures the 25-shot performance of LLMs on the arc-challenge dataset, the 10-shot performance on the HellaSwag dataset, the 0-shot performance on TurthfulQA, and the 5-shot performance on MMLU. For arc-challenge and HellaSwag performance is measured using the acc$\_$norm metric of EleutherAI, for TruthfulQA they use the mc2 metric, and for MMLU they average the accuracy of the model across tasks in the MMLU dataset.
+Specifically, the leaderboard measures the 25-shot performance of LLMs on the arc-challenge dataset, the 10-shot performance on the HellaSwag dataset, the 0-shot performance on TurthfulQA, and the 5-shot performance on MMLU. For arc-challenge and HellaSwag performance is measured using the acc$-$norm metric of EleutherAI, for TruthfulQA they use the mc2 metric, and for MMLU they average the accuracy of the model across tasks in the MMLU dataset.
 The nice thing about the leaderboard is one can submit either the full model or submit just the adapter layers and give the base model separately.
 The problem is, sometimes models disappear from the leaderboard and I'm not sure why.
 \begin{table}
@@ -53,15 +76,15 @@ Model &          Average & Arc & HellaSwag & MMLU & TruthfulQA \\
 \hline
 Llama-2-7b&                  53.40               &   53.07            & 77.74              &  43.80                &  38.98 \\
 Llama-2-7b-chat  &          \textbf{56.34} &  52.90              & 78.55             &  \textbf{48.32}    &  \textbf{45.57} \\
-Llama-2-7b-eli5  &           53.92             &  53.41              & 77.90             &  43.56                 & 40.81\\
+Llama-2-7b-ELI5  &           53.92             &  53.41              & 77.90             &  43.56                 & 40.81\\
 Llama-2-7b-wiki &           53.72              &  \textbf{54.35} & 78.06             &  45.35                 & 37.11\\
-Llama-2-7b-eli5-wiki&    55.46               &  53.75              & \textbf{78.76}&  46.02                   & 43.31\\
+Llama-2-7b-ELI5-wiki&    55.46               &  53.75              & \textbf{78.76}&  46.02                   & 43.31\\
 \hhline{|=|=|=|=|=|=|}
 Llama-2-13b &               56.90              &   58.11             & 80.97            &  54.34            & 34.17\\
 Llama-2-13b-chat&        59.93              & 59.04               & 81.94            &  54.64            & \textbf{44.12}\\
-Llama-2-13b-eli5&          \textbf{60.61} &  \textbf{60.41}  & \textbf{82.58}&  \textbf{55.86}& 43.61\\
+Llama-2-13b-ELI5&          \textbf{60.61} &  \textbf{60.41}  & \textbf{82.58}&  \textbf{55.86}& 43.61\\
 Llama-2-13b-wiki&	        58.12             &  59.04               & 82.33            &  55.36            & 35.75\\
-Llama-2-13b-eli5-wiki&   59.43             &  59.98               & 82.43            &  55.41            & 39.90 \\
+Llama-2-13b-ELI5-wiki&   59.43             &  59.98               & 82.43            &  55.41            & 39.90 \\
 \hline
 \end{tabular}
 \end{center}
@@ -146,7 +169,7 @@ In all cases, the model produces at most 256 new tokens.
 \toprule
 \textbf{Dataset} & \textbf{Model} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
 \midrule
-\multirow{4}{*}{eli5} & Llama-2-7b & \textbf{0.8429} & 0.8754 & 0.8583 \\
+\multirow{4}{*}{ELI5} & Llama-2-7b & \textbf{0.8429} & 0.8754 & 0.8583 \\
 & Llama-7b-ELI5 & 0.8372 & \textbf{0.8799} & 0.8575 \\
 & Llama-2-7b-wiki & 0.8415 & 0.8796 & \textbf{0.8598} \\
 & Llama-2-7b-ELI5-wiki & 0.8399 & 0.8798 & 0.8590 \\
@@ -170,27 +193,27 @@ It's difficult to interpret or make sense of these results, somehow the base Lla
 It is probably best to take these numbers with a grain of salt. The BERTScore metrics tend to differ by very small amounts, e.g. the difference in F1 scores between the base model and the model trained on ELI5 for the Simple Wikipedia validation set differ by just 0.001.
 In addition, we of course do not know on what data the original Llama-2 model was trained and if there is data leakage.
 
-Finally, let's look at the Flesch readability ease (FRE) and Flesch-Kincaid grade metrics. 
+Finally, let's look at the Flesch readability ease (FRE) and Flesch-Kincaid grade (FKG) metrics. 
 \begin{table}[h]
 \centering
 \begin{tabular}{|c|c|c|c|}
 \hline
-\textbf{Dataset} & \textbf{Model} & \textbf{Flesch Readability Scores} & \textbf{Flesch Kincaid Grade Level} \\
+\textbf{Dataset} & \textbf{Model} & \textbf{FRE} & \textbf{FKG} \\
 \hline
-\multirow{4}{*}{eli5} & Llama-2-7b & 58.2425 & 10.075 \\
-& Llama-2-7b-eli5 & 67.6357 & 8.148  \\
+\multirow{4}{*}{ELI5} & Llama-2-7b & 58.2425 & 10.075 \\
+& Llama-2-7b-ELI5 & 67.6357 & 8.148  \\
 & Llama-2-7b-wiki & 58.7145 & 10.526 \\
-& Llama-2-7b-eli5-wiki & 65.6862 &8.704  \\
+& Llama-2-7b-ELI5-wiki & 65.6862 &8.704  \\
 \hline
 \multirow{4}{*}{wiki} & Llama-2-7b-hf & 64.1040 & 8.172\\
-& Llama-2-7b-eli5 & 72.5682&6.988 \\
+& Llama-2-7b-ELI5 & 72.5682&6.988 \\
 & Llama-2-7b-wiki & 66.5824 &8.055\\
-& Llama-2-7b-eli5-wiki & 65.7558 &8.239\\
+& Llama-2-7b-ELI5-wiki & 65.7558 &8.239\\
 \hline
 \multirow{4}{*}{full} & Llama-2-7b & 65.0452&8.472 \\
-& Llama-2-7b-SFT-eli5 & 72.5278&7.092 \\
-& Llama-2-7b-SFT-wiki & 66.8147&8.252 \\
-& Llama-2-7b-SFT-eli5-wiki & 65.8295 &8.417\\
+& Llama-2-7b-ELI5 & 72.5278&7.092 \\
+& Llama-2-7b-wiki & 66.8147&8.252 \\
+& Llama-2-7b-ELI5-wiki & 65.8295 &8.417\\
 \hline
 \end{tabular}
 \caption{Flesch Readability Metrics}
@@ -216,6 +239,24 @@ There are two types of completion tasks, single-turn and multi-turn.
 For a single-turn problem, the model is given a prompt and asked to complete it.
 For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
 Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
+
+
+\begin{center}
+\begin{tabular}{c|c|c}
+    \hline
+    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
+    \hline
+    Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
+    llama-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
+    llama-7b-ELI5-wiki-merged &  5.975000 &  2.966667 \\
+    llama-7b-wiki-merged &  5.108333 & 1.616667  \\
+    llama-7b-ELI5-merged &  4.116667 & 1.733333  \\
+    llama-7b-wiki-simple-merge &  2.300000& 1.033333  \\
+    llama-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
+    Llama-2-7b-hf & 1.066667 &1.000000 \\
+    \hline
+\end{tabular}
+\end{center}
 
 
 
