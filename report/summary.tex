@@ -134,12 +134,31 @@ Given that our models are only trained for single-turn problems, we will see tha
     \hline
     Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
     Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
-    Llama-2-7b-ELI5-wiki-merged &  5.975000 &  2.966667 \\
-    Llama-2-7b-wiki-merged &  5.108333 & 1.616667  \\
-    Llama-2-7b-ELI5-merged &  4.116667 & 1.733333  \\
+    Llama-2-7b-ELI5-wiki &  5.975000 &  2.966667 \\
+    Llama-2-7b-wiki &  5.108333 & 1.616667  \\
+    Llama-2-7b-ELI5 &  4.116667 & 1.733333  \\
     Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
     Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
     Llama-2-7b-hf & 1.066667 &1.000000 \\
+    \hline
+\end{tabular}
+\end{center}
+
+Next let's look at the readability scores of each model on the single prompt:
+
+\begin{center}
+\begin{tabular}{c|c|c}
+    \hline
+    \textbf{Model} & \textbf{FRE}& \textbf{FKG} \\
+    \hline
+    Llama-2-7b-chat-hf &  42.21 & 12.50 \\ 
+    Llama-2-7b-ELI5-wiki-simple-merge & 60.55 & 9.60  \\
+    Llama-2-7b-ELI5-wiki &  53.41 &  10.20 \\
+    Llama-2-7b-wiki &  91.41 & 3.90 \\
+    Llama-2-7b-ELI5 &  63.19 & 8.50 \\
+    Llama-2-7b-wiki-simple-merge &  96.48& 2.00  \\
+    Llama-2-7b-ELI5-simple-merge & 78.65 & 4.70  \\
+    Llama-2-7b-hf & 29.86 &13.10 \\
     \hline
 \end{tabular}
 \end{center}
