@@ -1,0 +1,98 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+\usepackage{hhline}
+%SetFonts
+
+%SetFonts
+
+
+\title{Training Llama-2 on Simple, Safe Text}
+%\date{}							% Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+\section{Introduction}
+
+In this report we'll summarize the main results we have obtained on training a Llama-2 model to produce safe and simple text.
+Please feel free to add the results of any experiments. 
+
+\section{Dataset Analysis}
+
+
+
+\subsection{Filtering}
+\subsection{EDA}
+\section{Model and Training}
+\section{Inference Results}
+
+\subsection{HuggingFace Leaderboard}
+First I'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
+The leaderboard is a wrapper for the ``Eleuther AI Language Model Evaluation Harness". 
+Specifically, the leaderboard measures the 25-shot performance of LLMs on the arc-challenge dataset, the 10-shot performance on the HellaSwag dataset, the 0-shot performance on TurthfulQA, and the 5-shot performance on MMLU. For arc-challenge and HellaSwag performance is measured using the acc$\_$norm metric of EleutherAI, for TruthfulQA they use the mc2 metric, and for MMLU they average the accuracy of the model across tasks in the MMLU dataset.
+The nice thing about the leaderboard is one can submit either the full model or submit just the adapter layers and give the base model separately.
+The problem is, sometimes models disappear from the leaderboard and I'm not sure why.
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+Model &          Average & Arc & HellaSwag & MMLU & TruthfulQA \\
+\hline
+Llama-2-7b&                  53.40               &   53.07            & 77.74              &  43.80                &  38.98 \\
+Llama-2-7b-chat  &          \textbf{56.34} &  52.90              & 78.55             &  \textbf{48.32}    &  \textbf{45.57} \\
+Llama-2-7b-eli5  &           53.92             &  53.41              & 77.90             &  43.56                 & 40.81\\
+Llama-2-7b-wiki &           53.72              &  \textbf{54.35} & 78.06             &  45.35                 & 37.11\\
+Llama-2-7b-eli5-wiki&    55.46               &  53.75              & \textbf{78.76}&  46.02                   & 43.31\\
+\hhline{|=|=|=|=|=|=|}
+Llama-2-13b &               56.90              &   58.11             & 80.97            &  54.34            & 34.17\\
+Llama-2-13b-chat&        59.93              & 59.04               & 81.94            &  54.64            & \textbf{44.12}\\
+Llama-2-13b-eli5&          \textbf{60.61} &  \textbf{60.41}  & \textbf{82.58}&  \textbf{55.86}& 43.61\\
+Llama-2-13b-wiki&	        58.12             &  59.04               & 82.33            &  55.36            & 35.75\\
+Llama-2-13b-eli5-wiki&   59.43             &  59.98               & 82.43            &  55.41            & 39.90 \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Results for Llama-2 models on Huggingface Open LLM Leaderboard}.
+\label{table:hfleaderboard}
+\end{table}
+Here Llama-2-7b is the base 7 billion model and Llama-2-7b-chat is the Llama-2 model which has undergone RLHF.
+The remaining models are fine-tuned versions of the base-model. 
+Specifically, they are trained using SFT and QLORA on the ELI5 SFT dataset, the Simple Wikipedia Instruct dataset, or their combination. The second half of the table is the same, except for the 13B parameter model.
+
+When defining the model there are subtleties about how to merge the LoRA adapter weights with the rest of the model.
+The subtlety arises because in QLoRA we quantize the base model to 4-bit, but need to dequantize these weights to bfloat16 when performing back-propagation for the LoRA adapter layers.
+When we merge the adapter layers with the base model we have two natural options: either quantize the model to bfloat16 and then merge or quantize the model to 4-bit, dequantize to bfloat16, and then merge.
+The second option is arguably more natural since during training we are quantizing and then dequantizing, so we want the model at inference to be as close as possible to the model during training.
+However, when we quantize and then dequantize we risk losing precision and degrading the model in the process.
+It is not clear which choice is better and this likely depends on how strong of an effect the LoRA layers have and how sensitive they are to the exact form of weights. 
+On automated benchmarks we have not seen one method give reliably better results than the other.
+
+All that said, to get the above results we quantized and dequantized the 7B model before merging, while for the 13B model we quantized the model to bfloat16 and then merged. 
+For the 7B model we could perform the quantization and dequantization on a 40GB A100.
+For the 13B model we directly submitted the adapter layers to the HuggingFace leaderboard and used the ungated Llama-2-7b-hf model from NousResearch (the Meta-Llama model is gated and although it can be downloaded, we were not able to use it as a base model on the leaderboard).
+
+In Table \ref{table:hfleaderboard} we see that of the 7B models, the Meta-Llama-2-7b-chat performs the best on average with the Llama-2 model trained on ELI5 and Simple Wikipedia performing the second best.
+One surprising thing is the chat model actually performs worse than the base model on the Arc-Challenge dataset, and here the model trained on just Simple Wikipedia QA pairs performs the best. 
+On the HellaSwag dataset the Llama-2-7B model trained on ELI5 and Simple Wikipedia marginally outperforms the chat model, but the difference is likely too small to be statistically significant.
+Finally, on MMLU and TruthfulQA the 7B chat model performs significantly better than the other models.
+
+Once we go up to 13B parameters we see that the Llama-2 model trained on the ELI5 SFT dataset performs the best on average with the 13B chat model and 13B model fine-tuned on ELI5 + Simple Wikipedia close behind.
+It is surprising that the model trained on just ELI5 model performs the best, and this result is driven primarily by its improved performance on the TruthfulQA dataset. 
+On the other datasets it barely improves over the model trained on the combined ELI5 and Simple Wikipedia dataset.
+We are not sure what the cause of this effect is, somehow training the model more on Reddit data makes the model more honest!
+This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate and/or after averaging over initializations the difference would go away or the model trained on the combined dataset would perform better.
+
+
+
+\subsection{Rouge and BERTScore}
+
+\subsection{MT(S)-Bench}
+
+
+
+\end{document}  
