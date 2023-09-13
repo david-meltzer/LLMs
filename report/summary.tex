@@ -118,6 +118,32 @@ On the other datasets it barely improves over the model trained on the combined 
 We are not sure what the cause of this effect is, somehow training the model more on Reddit data makes the model more honest!
 This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate and/or after averaging over initializations the difference would go away or the model trained on the combined dataset would perform better.
 
+\subsection{MT(S)-Bench}
+
+In this section we will investigate how well our models perform on a new MT-bench like dataset.
+The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
+There are two types of completion tasks, single-turn and multi-turn.
+For a single-turn problem, the model is given a prompt and asked to complete it.
+For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
+Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
+
+\begin{center}
+\begin{tabular}{c|c|c}
+    \hline
+    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
+    \hline
+    Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
+    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
+    Llama-2-7b-ELI5-wiki-merged &  5.975000 &  2.966667 \\
+    Llama-2-7b-wiki-merged &  5.108333 & 1.616667  \\
+    Llama-2-7b-ELI5-merged &  4.116667 & 1.733333  \\
+    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
+    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
+    Llama-2-7b-hf & 1.066667 &1.000000 \\
+    \hline
+\end{tabular}
+\end{center}
+
 \subsection{ROUGE and BERTScore}
 In this section we will investigate how supervised fine-tuning effects the models ROUGE and BERTScores.
 ROUGE is a well-known automated benchmark that measures n-gam overlap between generated text and the reference text.
@@ -125,10 +151,7 @@ Since it just looks at n-gram overlaps, and does not take into account semantic 
 One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in some high-dimensional vector space and then measures the cosine-similarity between the two vectors.
 Of course, this also means that BERTScore is more computationally intensive to compute.
 
-In this section we will only perform inference on a small subset of the validation set, for each validation set we randomly sample 100 question and generate the answers.
-In addition, for each model we will both merging procedures, either quantizing to BF16 and then merging, or quantizing to 4-bits, dequantizing, and then merging.
-
-\subsubsection{Quantizing and Dequantizing}
+In this section we will only perform inference on a small subset (100 QA pairs) of the validation set, for each validation set we randomly sample 100 question and generate the answers.
 
 In the tables below we present the ROUGE and BERTScore metrics for the Llama-2 base model, as well as our fine-tuned models, on the (small) validation sets for our three datasets: ELI5, Simple Wikipedia, and combined dataset.
 We include the original Llama-2 model as a baseline to measure how much fine-tuning changes the Rouge and BERTScores.
@@ -226,38 +249,6 @@ Given that a text is considered simpler if its grade level is lower and its read
 In the latter case, the readability also went up by about 1.6518 points while the grade level went up by 0.067.
 Once again, in this case our metrics for readability are moving in opposite directions. 
 Finally, from the table we also see that the model trained on just ELI5 tends to produce the simplest text. 
-
-
-\subsubsection{Simple Merging}
-
-
-\subsection{MT(S)-Bench}
-
-In this section we will investigate how well our models perform on a new MT-bench like dataset.
-The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
-There are two types of completion tasks, single-turn and multi-turn.
-For a single-turn problem, the model is given a prompt and asked to complete it.
-For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
-Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
-
-
-\begin{center}
-\begin{tabular}{c|c|c}
-    \hline
-    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
-    \hline
-    Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
-    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
-    Llama-2-7b-ELI5-wiki-merged &  5.975000 &  2.966667 \\
-    Llama-2-7b-wiki-merged &  5.108333 & 1.616667  \\
-    Llama-2-7b-ELI5-merged &  4.116667 & 1.733333  \\
-    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
-    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
-    Llama-2-7b-hf & 1.066667 &1.000000 \\
-    \hline
-\end{tabular}
-\end{center}
-
 
 
 
