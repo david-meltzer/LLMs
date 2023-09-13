@@ -9,6 +9,13 @@
 \usepackage{hhline}
 %SetFonts
 
+\usepackage{multirow}
+\usepackage{booktabs}
+
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+
 %SetFonts
 
 
@@ -29,7 +36,8 @@ Please feel free to add the results of any experiments.
 \subsection{Filtering}
 \subsection{EDA}
 \section{Model and Training}
-\section{Inference Results}
+\section{SFT Inference Results}
+In this section we will summarize the results of Llama-2 models fine-tuned using supervised fine-tuning.
 
 \subsection{HuggingFace Leaderboard}
 First I'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
@@ -87,9 +95,76 @@ On the other datasets it barely improves over the model trained on the combined 
 We are not sure what the cause of this effect is, somehow training the model more on Reddit data makes the model more honest!
 This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate and/or after averaging over initializations the difference would go away or the model trained on the combined dataset would perform better.
 
+\subsection{ROUGE and BERTScore}
+In this section we will investigate how supervised fine-tuning effects the models ROUGE and BERTScores.
+ROUGE is a well-known automated benchmark that measures n-gam overlap between generated text and the reference text.
+Since it just looks at n-gram overlaps, and does not take into account semantic content, ROUGE is effectively measuring to what extent the trained model is adopting the vocabulary of the reference text.
+One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in some high-dimensional vector space and then measures the cosine-similarity between the two vectors.
+Of course, this also means that BERTScore is more computationally intensive to compute.
 
+In the tables below we present the ROUGE and BERTScore metrics for the Llama-2 base model, as well as our fine-tuned models, on the validation sets for our three datasets: ELI5, Simple Wikipedia, and combined dataset.
+We include the original Llama-2 model as a baseline to measure how much fine-tuning changes the Rouge and BERTScores.
+In addition, we also include ``off-diagonal" elements, where we train a model on one dataset and measure its ROUGE and BERTScores on the validation split of a different dataset.
+For example, we include cases where we train the model on the ELI5 SFT dataset and then evaluate it on the validation split of the Simple Wikipedia QA dataset.
+We included these results to serve as additional baselines to see to what extend fine-tuning on \textit{any} QA dataset changes the evaluation metrics.
+In all cases, the model produces at most 256 new tokens.
 
-\subsection{Rouge and BERTScore}
+\begin{table}[htbp]
+\centering
+\begin{tabular}{cccccc}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{rouge1} & \textbf{rouge2} & \textbf{rougeL} & \textbf{rougeLsum} \\
+\midrule
+\multirow{4}{*}{ELI5} & Llama-2-7b & \textbf{0.3796} & \textbf{0.2432} & \textbf{0.3000} & \textbf{0.3222} \\
+& Llama-2-7b-ELI5 & 0.3701 & 0.2140 & 0.2736 & 0.2821 \\
+& Llama-2-7b-wiki & 0.3575 & 0.2083 & 0.2660 & 0.2762 \\
+& Llama-2-7b-ELI5-wiki & 0.3702 & 0.2126 & 0.2733 & 0.2819 \\
+\midrule
+\multirow{4}{*}{wiki} & Llama-2-7b-hf & 0.1923 & 0.0103 & 0.0937 & \textbf{0.1392} \\
+& Llama-2-7b-ELI5 & \textbf{0.2203} & \textbf{0.0125} & \textbf{0.0964} & 0.1271 \\
+& Llama-2-7b-wiki & 0.1826 & 0.0073 & 0.0879 & 0.1165 \\
+& Llama-2-7b-ELI5-wiki & 0.1811 & 0.0076 & 0.0885 & 0.1153 \\
+\midrule
+\multirow{4}{*}{full} & Llama-2-7b & 0.1944 & 0.0087 & 0.0905 & \textbf{0.1400} \\
+& Llama-2-7b-ELI5 & \textbf{0.2243} & \textbf{0.0118} & \textbf{0.0971} & 0.1312 \\
+& Llama-2-7b-wiki & 0.1905 & 0.0079 & 0.0889 & 0.1198 \\
+&Llama-2-7b-ELI5-wiki & 0.1907 & 0.0080 & 0.0894 & 0.1193 \\
+\bottomrule
+\end{tabular}
+\caption{Rouge Scores}
+\label{tab:rouge_scores}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+\multirow{4}{*}{eli5} & Llama-2-7b & \textbf{0.8429} & 0.8754 & 0.8583 \\
+& Llama-7b-ELI5 & 0.8372 & \textbf{0.8799} & 0.8575 \\
+& Llama-2-7b-wiki & 0.8415 & 0.8796 & \textbf{0.8598} \\
+& Llama-2-7b-ELI5-wiki & 0.8399 & 0.8798 & 0.8590 \\
+\midrule
+\multirow{4}{*}{wiki} & Llama-2-7b & \textbf{0.7879} & 0.8067 & 0.7970 \\
+& Llama-7b-ELI5 & 0.7859 & \textbf{0.8093} & \textbf{0.7971} \\
+& Llama-2-7b-wiki & 0.7782 & 0.8019 & 0.7898 \\
+& Llama-2-7b-ELI5-wiki & 0.7783 & 0.8014 & 0.7896 \\
+\midrule
+\multirow{4}{*}{full} & Llama-2-7b & \textbf{0.7940} & 0.8092 & 0.8014 \\
+& Llama-7b-ELI5 & 0.7933 & \textbf{0.8116} & \textbf{0.8022} \\
+& Llama-2-7b-wiki  & 0.7861 & 0.8048 & 0.7952 \\
+& Llama-2-7b-ELI5-wiki & 0.7841 & 0.8046 & 0.7941 \\
+\bottomrule
+\end{tabular}
+\caption{Precision, Recall, and F1 BERTScores}
+\label{tab:scores}
+\end{table}
+
+It's difficult to interpret or make sense of these results, somehow the base Llama-2 model often outperforms the fine-tuned models and the model trained on just the ELI5 dataset often performs very well on the Simple Wikipedia validation set!
+It is probably best to take these numbers with a grain of salt. The BERTScore metrics tend to differ by very small amounts, e.g. the difference in F1 scores between the base model and the model trained on ELI5 for the Simple Wikipedia validation set differ by just 0.001.
+In addition, we of course do not know on what data the original Llama-2 model was trained and if there is data leakage.
+Finally, long-form question answering remains a difficult task to evaluate given the diversity of topics and possible answers a given question may have!
 
 \subsection{MT(S)-Bench}
 
