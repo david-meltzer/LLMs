@@ -170,17 +170,17 @@ In all cases, the model produces at most 256 new tokens.
 \textbf{Dataset} & \textbf{Model} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
 \midrule
 \multirow{4}{*}{ELI5} & Llama-2-7b & \textbf{0.8429} & 0.8754 & 0.8583 \\
-& Llama-7b-ELI5 & 0.8372 & \textbf{0.8799} & 0.8575 \\
+& Llama-2-7b-ELI5 & 0.8372 & \textbf{0.8799} & 0.8575 \\
 & Llama-2-7b-wiki & 0.8415 & 0.8796 & \textbf{0.8598} \\
 & Llama-2-7b-ELI5-wiki & 0.8399 & 0.8798 & 0.8590 \\
 \midrule
 \multirow{4}{*}{wiki} & Llama-2-7b & \textbf{0.7879} & 0.8067 & 0.7970 \\
-& Llama-7b-ELI5 & 0.7859 & \textbf{0.8093} & \textbf{0.7971} \\
+& Llama-2-7b-ELI5 & 0.7859 & \textbf{0.8093} & \textbf{0.7971} \\
 & Llama-2-7b-wiki & 0.7782 & 0.8019 & 0.7898 \\
 & Llama-2-7b-ELI5-wiki & 0.7783 & 0.8014 & 0.7896 \\
 \midrule
 \multirow{4}{*}{full} & Llama-2-7b & \textbf{0.7940} & 0.8092 & 0.8014 \\
-& Llama-7b-ELI5 & 0.7933 & \textbf{0.8116} & \textbf{0.8022} \\
+& Llama-2-7b-ELI5 & 0.7933 & \textbf{0.8116} & \textbf{0.8022} \\
 & Llama-2-7b-wiki  & 0.7861 & 0.8048 & 0.7952 \\
 & Llama-2-7b-ELI5-wiki & 0.7841 & 0.8046 & 0.7941 \\
 \bottomrule
@@ -247,12 +247,12 @@ Given that our models are only trained for single-turn problems, we will see tha
     \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
     \hline
     Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
-    llama-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
-    llama-7b-ELI5-wiki-merged &  5.975000 &  2.966667 \\
-    llama-7b-wiki-merged &  5.108333 & 1.616667  \\
-    llama-7b-ELI5-merged &  4.116667 & 1.733333  \\
-    llama-7b-wiki-simple-merge &  2.300000& 1.033333  \\
-    llama-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
+    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
+    Llama-2-7b-ELI5-wiki-merged &  5.975000 &  2.966667 \\
+    Llama-2-7b-wiki-merged &  5.108333 & 1.616667  \\
+    Llama-2-7b-ELI5-merged &  4.116667 & 1.733333  \\
+    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
+    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
     Llama-2-7b-hf & 1.066667 &1.000000 \\
     \hline
 \end{tabular}
