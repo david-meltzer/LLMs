@@ -102,7 +102,12 @@ Since it just looks at n-gram overlaps, and does not take into account semantic 
 One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in some high-dimensional vector space and then measures the cosine-similarity between the two vectors.
 Of course, this also means that BERTScore is more computationally intensive to compute.
 
-In the tables below we present the ROUGE and BERTScore metrics for the Llama-2 base model, as well as our fine-tuned models, on the validation sets for our three datasets: ELI5, Simple Wikipedia, and combined dataset.
+In this section we will only perform inference on a small subset of the validation set, for each validation set we randomly sample 100 question and generate the answers.
+In addition, for each model we will both merging procedures, either quantizing to BF16 and then merging, or quantizing to 4-bits, dequantizing, and then merging.
+
+\subsubsection{Quantizing and Dequantizing}
+
+In the tables below we present the ROUGE and BERTScore metrics for the Llama-2 base model, as well as our fine-tuned models, on the (small) validation sets for our three datasets: ELI5, Simple Wikipedia, and combined dataset.
 We include the original Llama-2 model as a baseline to measure how much fine-tuning changes the Rouge and BERTScores.
 In addition, we also include ``off-diagonal" elements, where we train a model on one dataset and measure its ROUGE and BERTScores on the validation split of a different dataset.
 For example, we include cases where we train the model on the ELI5 SFT dataset and then evaluate it on the validation split of the Simple Wikipedia QA dataset.
@@ -120,7 +125,7 @@ In all cases, the model produces at most 256 new tokens.
 & Llama-2-7b-wiki & 0.3575 & 0.2083 & 0.2660 & 0.2762 \\
 & Llama-2-7b-ELI5-wiki & 0.3702 & 0.2126 & 0.2733 & 0.2819 \\
 \midrule
-\multirow{4}{*}{wiki} & Llama-2-7b-hf & 0.1923 & 0.0103 & 0.0937 & \textbf{0.1392} \\
+\multirow{4}{*}{wiki} & Llama-2-7b & 0.1923 & 0.0103 & 0.0937 & \textbf{0.1392} \\
 & Llama-2-7b-ELI5 & \textbf{0.2203} & \textbf{0.0125} & \textbf{0.0964} & 0.1271 \\
 & Llama-2-7b-wiki & 0.1826 & 0.0073 & 0.0879 & 0.1165 \\
 & Llama-2-7b-ELI5-wiki & 0.1811 & 0.0076 & 0.0885 & 0.1153 \\
@@ -164,9 +169,55 @@ In all cases, the model produces at most 256 new tokens.
 It's difficult to interpret or make sense of these results, somehow the base Llama-2 model often outperforms the fine-tuned models and the model trained on just the ELI5 dataset often performs very well on the Simple Wikipedia validation set!
 It is probably best to take these numbers with a grain of salt. The BERTScore metrics tend to differ by very small amounts, e.g. the difference in F1 scores between the base model and the model trained on ELI5 for the Simple Wikipedia validation set differ by just 0.001.
 In addition, we of course do not know on what data the original Llama-2 model was trained and if there is data leakage.
-Finally, long-form question answering remains a difficult task to evaluate given the diversity of topics and possible answers a given question may have!
+
+Finally, let's look at the Flesch readability ease (FRE) and Flesch-Kincaid grade metrics. 
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Model} & \textbf{Flesch Readability Scores} & \textbf{Flesch Kincaid Grade Level} \\
+\hline
+\multirow{4}{*}{eli5} & Llama-2-7b & 58.2425 & 10.075 \\
+& Llama-2-7b-eli5 & 67.6357 & 8.148  \\
+& Llama-2-7b-wiki & 58.7145 & 10.526 \\
+& Llama-2-7b-eli5-wiki & 65.6862 &8.704  \\
+\hline
+\multirow{4}{*}{wiki} & Llama-2-7b-hf & 64.1040 & 8.172\\
+& Llama-2-7b-eli5 & 72.5682&6.988 \\
+& Llama-2-7b-wiki & 66.5824 &8.055\\
+& Llama-2-7b-eli5-wiki & 65.7558 &8.239\\
+\hline
+\multirow{4}{*}{full} & Llama-2-7b & 65.0452&8.472 \\
+& Llama-2-7b-SFT-eli5 & 72.5278&7.092 \\
+& Llama-2-7b-SFT-wiki & 66.8147&8.252 \\
+& Llama-2-7b-SFT-eli5-wiki & 65.8295 &8.417\\
+\hline
+\end{tabular}
+\caption{Flesch Readability Metrics}
+\end{table}
+We see that for the most part, the fine-tuned models have a higher readability score and a lower grade level.
+There are two noticeable exceptions, the model trained on Simple Wikipedia QA pairs and evaluated on the ELI5 validation set has a higher grade level than the original base model.
+In addition, the model trained on ELI5 and Simple Wikipedia has a slightly higher grade level than the base model when evaluated on the Simple Wikipedia validation set. 
+In the former case, the grade level went up by 0.451 while the readability also went up by 0.472.
+Given that a text is considered simpler if its grade level is lower and its readability is higher, in this case our automatic metrics are inconclusive.
+In the latter case, the readability also went up by about 1.6518 points while the grade level went up by 0.067.
+Once again, in this case our metrics for readability are moving in opposite directions. 
+Finally, from the table we also see that the model trained on just ELI5 tends to produce the simplest text. 
+
+
+\subsubsection{Simple Merging}
+
 
 \subsection{MT(S)-Bench}
+
+In this section we will investigate how well our models perform on a new MT-bench like dataset.
+The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
+There are two types of completion tasks, single-turn and multi-turn.
+For a single-turn problem, the model is given a prompt and asked to complete it.
+For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
+Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
+
+
 
 
 
