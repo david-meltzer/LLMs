@@ -1,22 +1,44 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
-from transformers import (PreTrainedTokenizerBase,
-                          AutoModelForCausalLM,
-                          AutoTokenizer,
-                          TrainingArguments,
-                          PreTrainedModel,
-                          BitsAndBytesConfig,
-                          DataCollator)
-from transformers.trainer_callback import TrainerCallback
-from itertools import combinations
-import random
-from dataclasses import dataclass
-from trl import DPOTrainer
-from trl.trainer.dpo_trainer import DPODataCollatorWithPadding, disable_dropout_in_model, pad_to_length
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
-from datasets import Dataset
+import torch  # PyTorch library for deep learning
+import torch.nn as nn  # Neural network module of PyTorch
+import torch.nn.functional as F  # Functional interface to PyTorch's functions
+from torch.nn.utils.rnn import pad_sequence  # Utility function for padding sequences
+
+from transformers import (  # Classes and functions from the Transformers library
+    PreTrainedTokenizerBase,  # Base class for tokenizers
+    AutoModelForCausalLM,  # Pre-trained model for causal language modeling
+    AutoTokenizer,  # Auto tokenizer for model-specific tokenization
+    TrainingArguments,  # Arguments for training the model
+    PreTrainedModel,  # Pre-trained model from Hugging Face's models
+    BitsAndBytesConfig,  # Configuration for handling bits and bytes
+    DataCollator  # Data collator for processing input data
+)
+
+from transformers.trainer_callback import TrainerCallback  # Callback for Trainer class
+
+from itertools import combinations  # Module for creating combinations of elements
+import random  # Module for generating random numbers
+from dataclasses import dataclass  # Decorator for defining classes with special methods
+
+from trl import DPOTrainer  # DPOTrainer for training
+from trl.trainer.dpo_trainer import (  # DPO trainer components
+    DPODataCollatorWithPadding,  # Data collator with padding for DPO training
+    disable_dropout_in_model,  # Disabling dropout in the model
+    pad_to_length  # Padding input data to a specified length
+)
+
+from typing import (  # Type hinting for variables and functions
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union
+)
+
+from datasets import Dataset  # Huggingface datasets library.
+
 
 @dataclass
 class DPODataCollatorWithPadding_with_margin:
@@ -195,7 +217,7 @@ class DPOTrainer_with_margins(DPOTrainer):
     This class implements two modifications of the DPOTrainer:
         1) Can now reweight multiple pairs of responses for a given prompt to avoid overfitting.
            That is, if a prompt has 10 chosen/rejected pairs, we can reweight these samples to avoid overfitting to this prompt.
-        2) Can introduce a margin "m" into the DPO loss function L = - log(sigmoid(r_chosen - r_rejected -m)).
+        2) Can introduce a margin "m" into the DPO loss function L = - log(sigmoid(r_chosen - r_rejected - m)).
            Size of "m" determines how much more r_chosen is preferred over r_rejected.
            We will take m = log(score_chosen - score_rejected).
 

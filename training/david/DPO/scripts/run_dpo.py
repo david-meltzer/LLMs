@@ -40,6 +40,9 @@ from utils.llama_patch import replace_attn_with_flash_attn
 from utils.llama_patch import forward
 from utils.llama_patch import upcast_layer_for_flash_attention
 
+from utils.dpo_margin import DPOTrainer_with_margins
+
+
 def safe_save_model_for_hf_trainer(trainer: Trainer, tokenizer: AutoTokenizer, output_dir: str):
     """Helper method to save model for HF Trainer."""
     # see: https://github.com/tatsu-lab/stanford_alpaca/issues/65
@@ -173,7 +176,7 @@ def parse_arge():
     parser.add_argument(
         "--lr", 
         type=float, 
-        default=5e-5, 
+        default=2e-4, 
         help="Learning rate to use for training."
     )
 
@@ -237,13 +240,6 @@ def parse_arge():
         type=int,
         default=1 if torch.cuda.get_device_capability()[0] == 8 else False,
         help="Whether to use bf16.",
-    )
-    
-    parser.add_argument(
-        "--group_by_length",
-        type=int,
-        default=1,
-        help='set to true to group batches by length'
     )
 
     parser.add_argument(
@@ -322,10 +318,16 @@ def parse_arge():
     )
 
     parser.add_argument(
+        '--group_by_length',
+        default=1,
+        type=int,
+        help='whether to group by length.'
+    )
+
+    parser.add_argument(
         '--length_column_name',
         default='lengths',
-        type=str,
-        help='column to use when grouping by length.'
+        type=str
     )
 
     parser.add_argument(
@@ -360,6 +362,20 @@ def parse_arge():
         '--hub_strategy',
         type=str,
         default='every_save'
+    )
+
+    parser.add_argument(
+        '--use_margin',
+        type = int,
+        default = 0,
+        help = 'set to 1 to include margin in training loss.'
+    )
+
+    parser.add_argument(
+        '--rho',
+        type=float,
+        default=1,
+        help='proportionality factor for margin.'
     )
     
 #    parser.add_argument("--fsdp",
@@ -570,6 +586,7 @@ def training_function(args):
         weight_decay = args.weight_decay,
         gradient_accumulation_steps = args.gradient_accumulation_steps,
         group_by_length = args.group_by_length,
+        length_column_name = args.length_column_name,
         # logging strategies
         logging_dir=f"{args.output_data_dir}/logs",
         logging_strategy = "steps",
@@ -594,6 +611,7 @@ def training_function(args):
         lr_scheduler_type=args.lr_scheduler_type,
         auto_find_batch_size=args.auto_find_batch_size,
         disable_tqdm=False,
+        remove_unused_columns=False,
 #        fsdp=args.fsdp,
 #        fsdp_transformer_layer_cls_to_wrap=args.fsdp_transformer_layer_cls_to_wrap,
     )
@@ -621,21 +639,33 @@ def training_function(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    dpo_trainer = DPOTrainer(
-        model,
-        args=training_args,
-        beta=args.beta,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        tokenizer=tokenizer,
-        max_prompt_length=args.max_prompt_length,
-        max_length=args.max_length,
-        truncation_mode=args.truncation_mode
-    )
+    if args.use_margin:
+        dpo_trainer = DPOTrainer(
+            model,
+            args=training_args,
+            beta=args.beta,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=tokenizer,
+            max_prompt_length=args.max_prompt_length,
+            max_length=args.max_length,
+            truncation_mode=args.truncation_mode
+        )
+    else:
+        dpo_trainer = DPOTrainer_with_margins(model,
+            args=training_args,
+            beta=args.beta,
+            rho=args.rho,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=tokenizer,
+            max_prompt_length=args.max_prompt_length,
+            max_length=args.max_length,
+            truncation_mode=args.truncation_mode)
     
-    if not args.resume_from_checkpoint:
-        original_performance = dpo_trainer.evaluate()
-        wandb.log({'initial-performance': wandb.Table(dataframe=pd.DataFrame(original_performance, index=["Performance"]))})
+    #if not args.resume_from_checkpoint:
+    #    original_performance = dpo_trainer.evaluate()
+    #    wandb.log({'initial-performance': wandb.Table(dataframe=pd.DataFrame(original_performance, index=["Performance"]))})
 
     dpo_trainer.train(resume_from_checkpoint = bool(args.resume_from_checkpoint))
 
@@ -644,6 +674,7 @@ def training_function(args):
         eval_result = dpo_trainer.evaluate()
         dpo_trainer.create_model_card(model_name=args.repo_id)
         dpo_trainer.push_to_hub()
+        model.push_to_hub(args.repo_id,safe_serialization=True)
     
     dpo_trainer.save_model(args.output_dir)
 
