@@ -11,6 +11,6 @@
 \contentsline {subsection}{\numberline {3.1}How to Define The Inference Model}{12}{subsection.3.1}% 
 \contentsline {subsection}{\numberline {3.2}Supervised Fine-Tuning}{12}{subsection.3.2}% 
 \contentsline {subsubsection}{\numberline {3.2.1}HuggingFace Leaderboard}{13}{subsubsection.3.2.1}% 
-\contentsline {subsubsection}{\numberline {3.2.2}Judging the Validation Set with GPT-4}{14}{subsubsection.3.2.2}% 
-\contentsline {subsubsection}{\numberline {3.2.3}ROUGE and BERTScore}{14}{subsubsection.3.2.3}% 
+\contentsline {subsubsection}{\numberline {3.2.2}ROUGE and BERTScore}{14}{subsubsection.3.2.2}% 
+\contentsline {subsubsection}{\numberline {3.2.3}Judging the Validation Set with GPT-4}{16}{subsubsection.3.2.3}% 
 \contentsline {subsubsection}{\numberline {3.2.4}MT(S)-Bench}{16}{subsubsection.3.2.4}% 
