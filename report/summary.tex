@@ -7,6 +7,7 @@
 								% TeX will automatically convert eps -> pdf in pdflatex		
 \usepackage{amssymb}
 \usepackage{hhline}
+\usepackage{amsmath}
 %SetFonts
 
 \usepackage{multirow}
@@ -15,6 +16,8 @@
 \usepackage{multirow}
 \usepackage{tabularx}
 \usepackage{ragged2e}
+\usepackage[colorlinks]{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor  = blue,citecolor = blue}
 
 %SetFonts
 
@@ -24,15 +27,16 @@
 
 \begin{document}
 \maketitle
+\tableofcontents
 \section{Introduction}
 
 In this project we will explore how to build a LLM that answers questions in a simple and safe ($S^{2}$) way.
 That is, we want an LLM which answers questions in a way which is understandable to schoolchildren and/or adults who are learning English while also not producing any potentially toxic or offensive content.
 To train the LLM we will use a combination of imitation learning and preference modeling.
-The two main algorithms we will explore are Reinforcement Learning from Human Feedback (RLHF) and Direct Preference Optimization (DPO). 
-In the remainder of this section we will briefly review these methods.
-We will not go through the detailed implementations of these algorithms (although this may be added in the future) but will instead focus on the overall challenges and benefits of each approach.
+The two main algorithms we will explore are Reinforcement Learning from Human Feedback (RLHF) \cite{ouyang2022training,bai2022training} and Direct Preference Optimization (DPO) \cite{rafailov2023direct}. 
 
+In the remainder of this introduction we will briefly review these methods.
+We will attempt to be light on the mathematical details of the algorithms and instead focus on the overall challenges and benefits of each approach.
  
  \subsection{RLHF}
 RLHF is the most well-known method used to align LLMs with human interests and is behind the success of chatbots such as ChatGPT and Claude.
@@ -50,6 +54,27 @@ Specifically, the model is trained using Proximal Policy Optimization (PPO).
 At this step it helps to add a term to the reward modeling objective proportional to the KL-divergence between the SFT model we are training and the original SFT from step (1).
 The addition of a KL penalty helps ensure that the model trained with RL does not deviate too strongly from the original model and produce low-quality text that simply ``hacks" the reward model.
 \end{enumerate}
+
+To be more precise, during step (2) we typically assume that human preferences are captured by the Bradley-Terry model:
+\begin{align}
+p^{*}(y_1\succ y_1|x)=\frac{e^{r^{*}(x,y_1)}}{e^{r^{*}(x,y_1)}+e^{r^{*}(x,y_2)}}
+\end{align}
+where $r^{*}$ is the gold reward model.
+To find the optimal reward model we can minimize the following loss function:
+\begin{align}
+\mathcal{L}(r_{\phi},\mathcal{D}) = - \mathbb{E}_{(x,y_{w},y_{l})\sim\mathcal{D}}\left[\log(\sigma(r_{\phi}(x,y_w)-r_{\phi}(x,y_l)))\right]
+\label{eq:reward_optimization}
+\end{align}
+where $\phi$ are the parameters of the reward model, $y_w$ and $y_l$ are the chosen/rejected answers, respectively, $\mathcal{D}$ is our dataset, and $\sigma$ is the logistic function. 
+
+During the RL step the goal is to find a policy (LLM) $\pi_{\theta}$ which solves the following optimization problems:
+\begin{align}
+\pi_{\theta^{*}} = \text{argmax}_{\pi_{\theta}}\mathbb{E}_{x\sim \mathcal{D},y\sim \pi_{\theta}(y|x)}[r_{\phi}(x,y)]-\beta \mathcal{D}_{KL}[\pi_{\theta}(y|x)||\pi_{\text{\text{ref}}}(y|x)]
+\label{eq:constrained_optimization}
+\end{align}
+where $r_{\phi}$ is the previous learned reward model, $\mathcal{D}_{KL}$ is the KL-divergence, and $\pi_{\text{\text{ref}}}$ is the SFT model from step (1).
+The parameter $\beta$ is a hyperparameter which controls how much we penalize deviations from the original reference model.
+The optimal policy is then found using PPO.
 
 RLHF is clearly a non-trivial algorithm to implement in practice. 
 The simplest step to implement is the SFT since the training objective is essentially identical to the pretraining objective. 
@@ -91,51 +116,160 @@ DPO is therefore a two step procedure:
 \item Take the model from step (1) and train it to learn human preferences directly using the DPO loss function.  
 \end{enumerate} 
 
-DPO is clearly a simpler algorithm to implement than RLHF and since we are using supervised learning, it is also expected to be more stable.
-Given that it is easier to implement, we will start by using DPO to align our LLMs and use the results from DPO as a benchmark for RLHF. 
+To proof that the DPO is equivalent to RLHF, they first show that the optimal policy which satisfies equation \ref{eq:constrained_optimization} is:
+\begin{align}
+\pi_{r}(y|x)=\frac{1}{Z(x)}\pi_{\text{ref}}(y|x)e^{\frac{r(x,y)}{\beta}}
+\end{align} 
+where the partition function is:
+\begin{align}
+Z(x)=\sum\limits_{y}\pi_{\text{ref}}(y|x)e^{\frac{r(x,y)}{\beta}}.
+\end{align}
+After making this identification, the reward modeling step, equation \ref{eq:reward_optimization}, becomes equivalent to minimizing the following loss function:
+\begin{align}
+\mathcal{L}_{\text{DPO}}(\pi_{\theta};\pi_{\text{ref}}) = -\mathbb{E}_{(x,y_w,y_l)}\sim\mathcal{D}\left[\log \sigma \left(\beta \log \frac{\pi_{\theta}(y_w|x)}{\pi_{\text{ref}}(y_w|x)}-\beta \log \frac{\pi_{\theta}(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\right)\right]
+\end{align}
+
+DPO is overall a simpler algorithm to implement and use since it just involves supervised learning.
+For this reason, we will start by using DPO to align our LLMs and use the results from DPO as a benchmark for RLHF. 
 In the original DPO paper it was also shown that DPO achieves comparable or better results than RLHF, so we expect DPO will serve as a strong benchmark for RLHF, or any other algorithm to align LLMs. 
 
 Are there any downsides to DPO?
 One potential downside, given its current incarnation, is that there may be cases where we want a separate reward model.
-This is brought up in the DPO paper, where they mention that having a separate reward model may be useful to label currently unlabelled prompts, and it is less clear if performing self labelling using the LLM (which is also being trained) is equally effective.
+This is brought up in the DPO paper, where they mention that having a separate reward model may be useful to label currently unlabelled prompts, and it is less clear if performing self-labelling using the LLM (which is also being trained) is equally effective.
 In addition, as brought up earlier, it may be useful to have multiple reward models to capture different aspects of an answer, e.g. helpfulness vs simplicity. 
-This theoretically can be implemented in RLHF but it is not clear how to do this using DPO directly.
-Finally, like most implementations of RLHF, the DPO algorithm assigns a single score to an entire answer and does not yet take into account fine-grained human preferences.
+This theoretically can be implemented in RLHF by simply training more reward models, but it is not clear how to do this using DPO directly since in DPO our LLM is also the reward model.
+Finally, like most implementations of RLHF, the DPO algorithm assigns a single score to an entire answer and does judge individual parts of the answer.
 
 \section{Datasets}
+
 \subsection{Sources}
 The two sources of our datasets are the ELI5 dataset and Simple Wikipedia.
 In this section we will go into detail on the form of these datasets and in the next section we will explain how we filtered them. 
+
+\subsubsection*{ELI5}
 
 The ELI5 dataset gets its name from the subreddit Explain Like I'm Five (r/ELI5) on reddit.com.
 The stated goal of the ELI5 subreddit is to provide a place where people can ask questions on a wide variety of topics and receive a layperson-friendly explanation.
 Commentators are requested to answer a question without assuming ``knowledge beyond a typical secondary education program" and in general to keep answers clear and simple.
 The ELI5 dataset also contains question/answer pairs from the r/AskHistorians and r/AskScience subreddits. The r/AskHistorians is well-known to be a well-moderated community where answers are particularly in-depth and clear. 
 Low quality answers, e.g. ones that do not answer the original question or do not properly cite sources, are typically removed.
-The quality of posts on r/AskScience is also high and users generally receive clear answers to fairly technical questions.
-However, the moderation on r/AskScience is less strict than on r/AskHistorians.
+The quality of posts on r/AskScience is also high and users generally receive clear answers to fairly technical questions, although the moderation appears to be less strict than on r/AskHistorians.
 We will use the ELI5 dataset to train a question/answer model by using the title and body of the post as the question and highly-voted comments as the answers.
 
-Simple Wikipedia is a version of Wikipedia where users are encouraged to write articles using basic English.
+The original ELI5 dataset was created by researchers at Facebook \cite{fan-etal-2019-eli5} and the original ELI5 dataset can be found \href{https://huggingface.co/datasets/eli5}{here}.
+However, one potential issue with this dataset is that there is a large amount of data leakage between the train/validation/test splits \cite{krishna2021hurdles,mahapatra2021new}.
+For this reason, we will use a cleaned version of the ELI5 dataset which was constructed by the second group and can be found \href{https://huggingface.co/datasets/vblagoje/lfqa}{here}.
+This dataset will also require some cleaning due to data leakage, but overall its cleaner than the previous version of the ELI5 dataset.
+
+
+\subsubsection*{Wikipedia}
+\href{https://simple.wikipedia.org/wiki/Main_Page}{Simple Wikipedia} is a version of Wikipedia where users are encouraged to write articles using basic English.
 On the Simple Wikipedia homepage they write: ``The Simple English Wikipedia is for everyone, such as children and adults who are learning English."
 They also encourage users to write shorter sentences, while not necessarily requiring that the articles also be short.
-In particular, users are told to write articles using simple words and grammar, but to not necessarily only use "basic information".
+In particular, users are told to write articles using simple words and grammar, but to not necessarily only use ``basic information".
 Unlike the ELI5 dataset, we cannot use the Simple Wikipedia dataset out of the box to train a question-answering model since the articles are not written in that style.
-Instead, we will use GPT-3.5 to generate questions whose answer is contained in the first few paragraphs of the Simple Wikipedia article. 
-Specifically, we give GPT-3.5 the following prompt:
+Instead, we will use GPT-3.5 to generate questions whose answer is contained in the first few paragraphs of the Simple Wikipedia article \cite{koksal2023longform}. 
+Specifically, we give GPT-3.5 the following system message and prompt:
 \\[5pt]
-
+\indent \textbf{System Message}: ``You are a helpful assistant that generates questions from text."
+\indent \textbf{Prompt}: ``Question: X
+\newline
+\indent\indent\indent\indent Answer: \{answer\} 
 \\
+\indent\indent\indent\indent What kind of question, X, could this be an answer to?\newline \indent\indent\indent\indent X:"
+\\[5pt]
+Here the text in \{answer\} is the first few paragraphs of the Simple Wikipedia article.
+
+This is a very general and powerful idea which allows us to use large LLMs to generate whole new, synthetic datasets from existing text.
+A nice feature of this method is that only the question is AI-generated, the answer itself is still human-written text which has been repurposed for a new task.
+A dataset of Simple Wikipedia articles is hosted on HuggingFace \href{https://huggingface.co/datasets/wikipedia/viewer/20220301.simple/train}{here} which we will use to generate the questions.
+
+\subsection{Creating Datasets}
+RLHF involves three separate training steps, supervised fine-tuning, reward modeling, and reinforcement learning, so we therefore need three separate datasets.
+Each dataset also has its own train, validation, and test sets.
+To perform DPO we also need separate datasets for supervised fine-tuning and reward modeling.
+In this section we will summarize how we filter and split our initial dataset into these three datasets.
+\subsubsection{ELI5}
+The initial training, validation, and test splits of the \href{https://huggingface.co/datasets/vblagoje/lfqa}{ELI5} dataset contains 226147, 3020, and 10000 separate posts. 
+However, each post can contain multiple question/answer pairs.
+If we count each QA pair as a separate datapoint then the train, validation, and test splits contain 669139, 22636, and 41650 datapoints, respectively.
+
+Before we split this dataset up into SFT/RM/RL subsets, we first performed some data cleaning.
+To form the SFT and RM datasets we used the following procedure:
+\begin{enumerate}
+\item First we used \href{https://pypi.org/project/redditcleaner/}{redditcleaner} to remove Reddit-specific markdown formatting.
+\item Next we removed any quoted texts in the answers. Although quoting the original question is not problematic in and of itself, we did this to shorten the answer and ensure the entire answer can fit in the context length.
+\item We also removed any extra whitespaces from the text.
+\item The ELI5 dataset uses the string ``\_url\_i\_" as a placeholder for URLs, which are stored elsewhere in the dataset. 
+We decided to remove URLs given the propensity of LLMs to hallucinate fake sources.
+Instead, we intend to use retrieval augmented generation (RAG) so our LLMs can properly cite sources.
+\item We removed any answers which are less than 20 words long, since these tend to be uninformative. 
+\item We removed any answers which received a score less than 4. 
+The original ELI5 dataset was constructed by only keeping posts that had a score of at least 2 and also contained answers with a score of at least two.
+\item We removed any posts that did not fit the question answer paradigm, e.g. if the title/post did not actually contain a question.
+There are many posts on these subreddits of these forms, e.g. r/AskScience has \href{https://www.reddit.com/r/askscience/comments/10wyuf9/ask_anything_wednesday_engineering_mathematics/}{``Ask Anything Wednesday"} posts where users ask questions and receive answers in the comments and r/AskHistorians has had meta posts on the state of the subreddit, see e.g. this \href{https://www.reddit.com/r/AskHistorians/comments/yfs7uh/askhistorians_has_hit_15_million_subscribers_to/}{post} celebrating the subreddit hitting 1.5 million subscribers. We manually went through the ELI5 dataset to identify and remove such posts.
+\item We removed answers which did not meet our simplicity criteria according to the \href{https://en.wikipedia.org/wiki/Flesch\%E2\%80\%93Kincaid_readability_tests}{Flesch-Kincaid readability metrics}. Specifically, we measured the simplicity of an answer by computing its Flesch reading ease (FRE) and Flesch-Kincaid grade level (FKG) scores. We only kept posts with FRE$\geq 60$, which corresponds to ``simple English" and FKG$< 9$, which corresponds to text which should be understandable by middle-school students and younger (the FKG score approximately corresponds to US school grade level). 
+\end{enumerate}
+
+There is of course freedom to change the above data cleaning procedure and it would be interesting to explore alternatives. 
+In particular, it may be useful to keep the quoted text in the answer so that our LLM learns that it's useful to quote the original text when replying.
+In addition, keeping the URLs in the answer may not cause anymore hallucination than normal. 
+Both options are certainly worth exploring in the future.
+
+Of all of the above filtering steps, the last one is likely the most unique to our project. 
+The Flesch-Kincaid readability metrics are automatic metrics developed in the 1970s to measure the difficulty of the text.
+They are computed as follows:
+\begin{align}
+\text{FRE} &= 206.835-1.015\left(\frac{\text{total words}}{\text{total sentences}}\right)-84.6\left(\frac{\text{total syllables}}{\text{total words}}\right)
 \\
-This is a very general and powerful idea which allows us to use large LLMs to generate whole new datasets from existing text.
-A nice feature of this method is that only the question is AI-generated, the answer itself is simply human-written text which has been repurposed for a new task.
+\text{FKG} &= 0.39\left(\frac{\text{total words}}{\text{total sentences}}\right)+11.8\left(\frac{\text{total syllables}}{\text{total words}}\right)-15.59
+\end{align}
+It would of course be interesting to consider more advanced methods to determine the simplicity or complexity of a text.
+For example, we can try to train a model to classify texts into different categories or we could simply prompt GPT-4.
+We decided to use Flesch-Readability metrics because they both serve as a strong baseline to compare against more complicated models and also because they gave us a fast and easy way to filter our large datasets. 
+We expect that more advanced methods may be more useful to perform further pruning of our dataset.
 
-\subsection{Dataset Types}
-The goal of 
+After applying the above filtering steps, we split the resulting dataset into the SFT and RM dataset.
+If we want to use a post for reward modeling we of course need to ensure that it contains more than one answer!
+For this reason, we put any post that only has one answer into the SFT dataset.
+In addition, even if we have multiple answers, we also need clear human preferences between those answers.
+Therefore, we only keep answers in the RM dataset if they have unique scores such that we can rank them.
+If two answers have the same score, we move one of the answers (with the corresponding question) to the SFT dataset.  
+Finally, we place any question which has not been placed into either the SFT or RM dataset into the reinforcement learning dataset.
+Note that this includes questions which were filtered out in the above pre-processing steps since for RL we only need the questions, and not the answers, since the model's generation will be judged solely by the reward model and will not be compared to the human-written text. 
+For DPO we will only use the SFT and RM datasets.
+
+Once we have split the dataset into the SFT, RM, and RL datasets, we next need to ensure that each dataset does not have any data leakage.
+To catch data leakage, we used the ``all-mpnet-base-v2" \href{https://www.sbert.net/}{SentenceTransformers} model to embed each question into a 768-dimensional vector space.\footnote{Specifically, we combined the title and body of the post into one string applied the SentenceTransformer model to that text.}
+We then computed the cosine-similarities between the embedding vectors in the train, validation, and test sets. As a reminder, the cosine similarity is defined by:
+\begin{align}
+\text{cos-similarity}(v_1,v_2)=\frac{v_1\cdot v_2}{|\!|v_1|\!|_2 |\!|v_2|\!|_2},
+\end{align}
+where $|\!|\ |\!|_2$ is the standard $L_2$ norm.
+After inspecting various questions and their cosine-similarity, we decided to use 0.6 as our cutoff for detecting data-leakage, i.e. if \\ $\text{cos-similarity}(v_1,v_2)\geq 0.6$ we would remove either $v_1$ or $v_2$.
+If a training example overlapped significantly with an example in the validation or test sets, we removed it from the training set since the training dataset is much larger than the other two datasets.
+For the same reason, if an example in the test set overlapped significantly with a vector in the validation set, we removed it from the test set. After removing data leakage, the cleaning process for the SFT and RM datasets starts to differ slightly, so we will consider these two datasets separately for the remained of this section.
+\\[10pt]
+{\large \textbf{SFT}}
+\\[10pt]
+During supervised fine-tuning we are essentially teaching our model to imitate how humans (or more advanced LLMs) answer questions.
+To avoid our model imitating bad behavior, we need to perform extra filtering steps.
+To prevent the model from outputting toxic or offensive content, we used \href{https://github.com/unitaryai/detoxify}{Detoxify} from UnitaryAI to detect toxic content.
+Specifically, we use the ``unbiased" model which has a RoBERTa-Base model fine-tuned on the dataset from the following \href{https://www.kaggle.com/c/jigsaw-unintended-bias-in-toxicity-classification}{Kaggle competition}. This competition defined toxic content to be anything that is ``rude, disrespectful or otherwise likely to make someone leave a discussion." 
+The model from Detoxify scores assigns a score of 0-1 on the following 6 metrics: severe\_toxicity, obscene, threat, insult, identity\_attack, sexual\_explicit".
+Higher scores are associated to toxic text while lower scores are associated with safer text.
+We filtered by SFT dataset to only keep answers which received a score of $\leq 0.1$ on all six metrics.
 
 
-\subsection{Filtering}
-In order to train a model which answers questions in a safe and simple way, we need to filter our
+After performing the above cleaning steps, we trained Llama-2 models on the SFT dataset.
+However, we noticed some issues with the model's generated text at inference time.
+In particular, the model had a tendency to end its posts with strings of text of the form: ``Edit: typos, Edit 2: Sorry caught more typos etc.". 
+Evidently, the model picked up on the fact that many Reddit posts by adding edits either correcting information in the post, adding additional sources, or thanking other users.
+To avoid our model learning this behavior, we filtered the SFT dataset to remove any answers which ended in this way.
+
+
+
+\subsubsection{Simple Wikipedia}
 
 
 \subsection{EDA}
@@ -350,7 +484,8 @@ In the latter case, the readability also went up by about 1.6518 points while th
 Once again, in this case our metrics for readability are moving in opposite directions. 
 Finally, from the table we also see that the model trained on just ELI5 tends to produce the simplest text. 
 
-
+\bibliographystyle{utphys}
+\bibliography{refs}
 
 
 \end{document}  

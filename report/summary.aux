@@ -1,22 +1,57 @@
 \relax 
-\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}RLHF}{1}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}DPO}{3}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}Datasets}{4}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Sources}{4}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Dataset Types}{5}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Filtering}{5}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}EDA}{5}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Model and Training}{5}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}SFT Inference Results}{5}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}HuggingFace Leaderboard}{5}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Results for Llama-2 models on Huggingface Open LLM Leaderboard}}{6}{}\protected@file@percent }
-\newlabel{table:hfleaderboard}{{1}{6}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}MT(S)-Bench}{7}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}ROUGE and BERTScore}{8}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Rouge Scores}}{9}{}\protected@file@percent }
-\newlabel{tab:rouge_scores}{{2}{9}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Precision, Recall, and F1 BERTScores}}{9}{}\protected@file@percent }
-\newlabel{tab:scores}{{3}{9}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Flesch Readability Metrics}}{10}{}\protected@file@percent }
-\gdef \@abspage@last{10}
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{ouyang2022training}
+\citation{bai2022training}
+\citation{rafailov2023direct}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}RLHF}{1}{subsection.1.1}\protected@file@percent }
+\newlabel{eq:reward_optimization}{{2}{2}{RLHF}{equation.1.2}{}}
+\newlabel{eq:constrained_optimization}{{3}{2}{RLHF}{equation.1.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}DPO}{3}{subsection.1.2}\protected@file@percent }
+\citation{fan-etal-2019-eli5}
+\citation{krishna2021hurdles}
+\citation{mahapatra2021new}
+\citation{koksal2023longform}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Datasets}{5}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Sources}{5}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Creating Datasets}{6}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.1}ELI5}{6}{subsubsection.2.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.2}Simple Wikipedia}{9}{subsubsection.2.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}EDA}{9}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Model and Training}{9}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}SFT Inference Results}{9}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}HuggingFace Leaderboard}{9}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Results for Llama-2 models on Huggingface Open LLM Leaderboard}}{10}{table.1}\protected@file@percent }
+\newlabel{table:hfleaderboard}{{1}{10}{Results for Llama-2 models on Huggingface Open LLM Leaderboard}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}MT(S)-Bench}{11}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}ROUGE and BERTScore}{12}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Rouge Scores}}{13}{table.2}\protected@file@percent }
+\newlabel{tab:rouge_scores}{{2}{13}{Rouge Scores}{table.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Precision, Recall, and F1 BERTScores}}{13}{table.3}\protected@file@percent }
+\newlabel{tab:scores}{{3}{13}{Precision, Recall, and F1 BERTScores}{table.3}{}}
+\bibstyle{utphys}
+\bibdata{refs}
+\bibcite{ouyang2022training}{1}
+\bibcite{bai2022training}{2}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Flesch Readability Metrics}}{14}{table.4}\protected@file@percent }
+\bibcite{rafailov2023direct}{3}
+\bibcite{fan-etal-2019-eli5}{4}
+\bibcite{krishna2021hurdles}{5}
+\bibcite{mahapatra2021new}{6}
+\bibcite{koksal2023longform}{7}

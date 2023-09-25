@@ -1,0 +1,45 @@
+\providecommand{\href}[2]{#2}\begingroup\raggedright\begin{thebibliography}{1}
+
+\bibitem{ouyang2022training}
+L.~Ouyang, J.~Wu, X.~Jiang, D.~Almeida, C.~L. Wainwright, P.~Mishkin, C.~Zhang,
+  S.~Agarwal, K.~Slama, A.~Ray, J.~Schulman, J.~Hilton, F.~Kelton, L.~Miller,
+  M.~Simens, A.~Askell, P.~Welinder, P.~Christiano, J.~Leike, and R.~Lowe,
+  ``Training language models to follow instructions with human feedback,''
+  2022.
+
+\bibitem{bai2022training}
+Y.~Bai, A.~Jones, K.~Ndousse, A.~Askell, A.~Chen, N.~DasSarma, D.~Drain,
+  S.~Fort, D.~Ganguli, T.~Henighan, N.~Joseph, S.~Kadavath, J.~Kernion,
+  T.~Conerly, S.~El-Showk, N.~Elhage, Z.~Hatfield-Dodds, D.~Hernandez, T.~Hume,
+  S.~Johnston, S.~Kravec, L.~Lovitt, N.~Nanda, C.~Olsson, D.~Amodei, T.~Brown,
+  J.~Clark, S.~McCandlish, C.~Olah, B.~Mann, and J.~Kaplan, ``Training a
+  helpful and harmless assistant with reinforcement learning from human
+  feedback,'' 2022.
+
+\bibitem{rafailov2023direct}
+R.~Rafailov, A.~Sharma, E.~Mitchell, S.~Ermon, C.~D. Manning, and C.~Finn,
+  ``Direct preference optimization: Your language model is secretly a reward
+  model,'' 2023.
+
+\bibitem{fan-etal-2019-eli5}
+A.~Fan, Y.~Jernite, E.~Perez, D.~Grangier, J.~Weston, and M.~Auli,
+  \href{http://dx.doi.org/10.18653/v1/P19-1346}{``{ELI}5: Long form question
+  answering,''} in {\em Proceedings of the 57th Annual Meeting of the
+  Association for Computational Linguistics}, pp.~3558--3567.
+\newblock Association for Computational Linguistics, Florence, Italy, July,
+  2019.
+\newblock \url{https://aclanthology.org/P19-1346}.
+
+\bibitem{krishna2021hurdles}
+K.~Krishna, A.~Roy, and M.~Iyyer, ``Hurdles to progress in long-form question
+  answering,'' 2021.
+
+\bibitem{mahapatra2021new}
+S.~Mahapatra, V.~Blagojevic, P.~Bertorello, and P.~Kumar, ``New methods \&
+  metrics for lfqa tasks,'' 2021.
+
+\bibitem{koksal2023longform}
+A.~Koksal, T.~Schick, A.~Korhonen, and H.~Schütze, ``Longform: Optimizing
+  instruction tuning for long text generation with corpus extraction,'' 2023.
+
+\end{thebibliography}\endgroup

@@ -1,0 +1,59 @@
+This is BibTeX, Version 0.99d (TeX Live 2019)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: summary.aux
+The style file: utphys.bst
+Database file #1: refs.bib
+`howpublished' is a missing field, not a string, for entry ouyang2022training
+while executing---line 1226 of file utphys.bst
+`howpublished' is a missing field, not a string, for entry bai2022training
+while executing---line 1226 of file utphys.bst
+`howpublished' is a missing field, not a string, for entry rafailov2023direct
+while executing---line 1226 of file utphys.bst
+`howpublished' is a missing field, not a string, for entry krishna2021hurdles
+while executing---line 1226 of file utphys.bst
+`howpublished' is a missing field, not a string, for entry mahapatra2021new
+while executing---line 1226 of file utphys.bst
+`howpublished' is a missing field, not a string, for entry koksal2023longform
+while executing---line 1226 of file utphys.bst
+You've used 7 entries,
+            2277 wiz_defined-function locations,
+            567 strings with 5803 characters,
+and the built_in function-call counts, 2223 in all, are:
+= -- 133
+> -- 236
+< -- 0
++ -- 81
+- -- 74
+* -- 197
+:= -- 363
+add.period$ -- 9
+call.type$ -- 7
+change.case$ -- 21
+chr.to.int$ -- 0
+cite$ -- 7
+duplicate$ -- 64
+empty$ -- 182
+format.name$ -- 74
+if$ -- 488
+int.to.chr$ -- 0
+int.to.str$ -- 7
+missing$ -- 1
+newline$ -- 26
+num.names$ -- 7
+pop$ -- 62
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 55
+stack$ -- 0
+substring$ -- 40
+swap$ -- 12
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 10
+width$ -- 8
+write$ -- 58
+(There were 6 error messages)
