@@ -7,8 +7,10 @@
 \BOOKMARK [3][-]{subsubsection.2.2.1}{ELI5}{subsection.2.2}% 7
 \BOOKMARK [3][-]{subsubsection.2.2.2}{Simple Wikipedia}{subsection.2.2}% 8
 \BOOKMARK [2][-]{subsection.2.3}{Exploratory Data Analysis}{section.2}% 9
-\BOOKMARK [1][-]{section.3}{Model and Training}{}% 10
-\BOOKMARK [1][-]{section.4}{SFT Inference Results}{}% 11
-\BOOKMARK [2][-]{subsection.4.1}{HuggingFace Leaderboard}{section.4}% 12
-\BOOKMARK [2][-]{subsection.4.2}{MT\(S\)-Bench}{section.4}% 13
-\BOOKMARK [2][-]{subsection.4.3}{ROUGE and BERTScore}{section.4}% 14
+\BOOKMARK [1][-]{section.3}{Inference}{}% 10
+\BOOKMARK [2][-]{subsection.3.1}{How to Define The Inference Model}{section.3}% 11
+\BOOKMARK [2][-]{subsection.3.2}{Supervised Fine-Tuning}{section.3}% 12
+\BOOKMARK [3][-]{subsubsection.3.2.1}{HuggingFace Leaderboard}{subsection.3.2}% 13
+\BOOKMARK [3][-]{subsubsection.3.2.2}{Judging the Validation Set with GPT-4}{subsection.3.2}% 14
+\BOOKMARK [3][-]{subsubsection.3.2.3}{ROUGE and BERTScore}{subsection.3.2}% 15
+\BOOKMARK [3][-]{subsubsection.3.2.4}{MT\(S\)-Bench}{subsection.3.2}% 16

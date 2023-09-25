@@ -7,8 +7,10 @@
 \contentsline {subsubsection}{\numberline {2.2.1}ELI5}{7}{subsubsection.2.2.1}% 
 \contentsline {subsubsection}{\numberline {2.2.2}Simple Wikipedia}{10}{subsubsection.2.2.2}% 
 \contentsline {subsection}{\numberline {2.3}Exploratory Data Analysis}{11}{subsection.2.3}% 
-\contentsline {section}{\numberline {3}Model and Training}{12}{section.3}% 
-\contentsline {section}{\numberline {4}SFT Inference Results}{12}{section.4}% 
-\contentsline {subsection}{\numberline {4.1}HuggingFace Leaderboard}{12}{subsection.4.1}% 
-\contentsline {subsection}{\numberline {4.2}MT(S)-Bench}{14}{subsection.4.2}% 
-\contentsline {subsection}{\numberline {4.3}ROUGE and BERTScore}{14}{subsection.4.3}% 
+\contentsline {section}{\numberline {3}Inference}{12}{section.3}% 
+\contentsline {subsection}{\numberline {3.1}How to Define The Inference Model}{12}{subsection.3.1}% 
+\contentsline {subsection}{\numberline {3.2}Supervised Fine-Tuning}{12}{subsection.3.2}% 
+\contentsline {subsubsection}{\numberline {3.2.1}HuggingFace Leaderboard}{13}{subsubsection.3.2.1}% 
+\contentsline {subsubsection}{\numberline {3.2.2}Judging the Validation Set with GPT-4}{14}{subsubsection.3.2.2}% 
+\contentsline {subsubsection}{\numberline {3.2.3}ROUGE and BERTScore}{14}{subsubsection.3.2.3}% 
+\contentsline {subsubsection}{\numberline {3.2.4}MT(S)-Bench}{16}{subsubsection.3.2.4}% 

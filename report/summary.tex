@@ -327,16 +327,34 @@ We then used GPT-3.5 to create questions whose answers are given in the truncate
 \subsection{Exploratory Data Analysis}
 This section will be filled in with more details on the features of our datasets.
 
-\section{Model and Training}
-\section{SFT Inference Results}
+\section{Inference}
+
+\subsection{How to Define The Inference Model}
+As is well-known, after training a model we have to make sure it is in ``evaluation" mode before performing inference, i.e. in PyTorch we call model.eval() to turn off dropout, prevent the accumulation of any more gradients, etc.
+
+In this project we faced an additional subtlety because we used QLoRA to fine-tune the large language models.
+In the original LoRA paper \cite{hu2021lora} they showed that one can efficiently fine-tune LLMs by adding low-rank adapter layers to the transformer.
+Specifically, they added adapter weights to the query, key, value, and output matrices that are used in the attention mechanims.
+In the QLoRA paper \cite{dettmers2023qlora} they extended this idea by additionally quantizing the base model weights to a new data type called 4-bit NormalFloat (NF4) while using a higher-precision, BF16, for the adapter layers.\footnote{In the QLoRA paper they also use double-quantization (quantizing the quantization constants) and paged optimizers to also save memory. In addition, in the QLoRA paper they add adapter layers to all linear layers and not just the attention weights.}
+In order to perform back-propagation for a given LoRA layer, we dequantize the associated base model's weights to BF16, update the LoRA weights, and then requantize the base model's weights.
+By using these methods, we can fine-tune 13B models on a single A100 GPU with 40GB of GPU RAM.
+
+However, we now face a subtlety when defining the model at inference time because there are now two different ways to merge the LoRA layers with the base model's weights.
+One option, which we call the simple merge, is to quantize the base model's FP32 weights to BF16 and then merge with the LoRA layers.
+The second option, which we call the careful merge, is to first quantize the base model's weights to NF4, de-quantize to BF16, and then merge those weights with the LoRA adapter layers.
+The second option is more natural since this is the procedure we actually follow during training and its important that LoRA weights see the same base weights during training and inference.
+The source of the difference between these two merges is that when we quantize and de-quantize weights we inevitably produce small errors due to the intermediate loss of precision.
+Given that we are studying billion-parameter models, these small deviations can build up to large effects.
+For this reason, unless stated explicitly, we will always use the careful merge at inference time.
+
+\subsection{Supervised Fine-Tuning}
 In this section we will summarize the results of Llama-2 models fine-tuned using supervised fine-tuning.
 
-\subsection{HuggingFace Leaderboard}
+\subsubsection{HuggingFace Leaderboard}
 First we'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
 The leaderboard is a wrapper for the ``Eleuther AI Language Model Evaluation Harness". 
 Specifically, the leaderboard measures the 25-shot performance of LLMs on the arc-challenge dataset, the 10-shot performance on the HellaSwag dataset, the 0-shot performance on TurthfulQA, and the 5-shot performance on MMLU. For arc-challenge and HellaSwag performance is measured using the acc$-$norm metric of EleutherAI, for TruthfulQA they use the mc2 metric, and for MMLU they average the accuracy of the model across tasks in the MMLU dataset.
 The nice thing about the leaderboard is one can submit either the full model or submit just the adapter layers and give the base model separately.
-The problem is, sometimes models disappear from the leaderboard and I'm not sure why.
 \begin{table}
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|c|}
@@ -364,17 +382,9 @@ Here Llama-2-7b is the base 7 billion model and Llama-2-7b-chat is the Llama-2 m
 The remaining models are fine-tuned versions of the base-model. 
 Specifically, they are trained using SFT and QLORA on the ELI5 SFT dataset, the Simple Wikipedia Instruct dataset, or their combination. The second half of the table is the same, except for the 13B parameter model.
 
-When defining the model there are subtleties about how to merge the LoRA adapter weights with the rest of the model.
-The subtlety arises because in QLoRA we quantize the base model to 4-bit, but need to dequantize these weights to bfloat16 when performing back-propagation for the LoRA adapter layers.
-When we merge the adapter layers with the base model we have two natural options: either quantize the model to bfloat16 and then merge or quantize the model to 4-bit, dequantize to bfloat16, and then merge.
-The second option is arguably more natural since during training we are quantizing and then dequantizing, so we want the model at inference to be as close as possible to the model during training.
-However, when we quantize and then dequantize we risk losing precision and degrading the model in the process.
-It is not clear which choice is better and this likely depends on how strong of an effect the LoRA layers have and how sensitive they are to the exact form of weights. 
-On automated benchmarks we have not seen one method give reliably better results than the other.
-
-All that said, to get the above results we quantized and dequantized the 7B model before merging, while for the 13B model we quantized the model to bfloat16 and then merged. 
-For the 7B model we could perform the quantization and dequantization on a 40GB A100.
-For the 13B model we directly submitted the adapter layers to the HuggingFace leaderboard and used the ungated Llama-2-7b-hf model from NousResearch (the Meta-Llama model is gated and although it can be downloaded, we were not able to use it as a base model on the leaderboard).
+%All that said, to get the above results we quantized and dequantized the 7B model before merging, while for the 13B model we quantized the model to bfloat16 and then merged. 
+%For the 7B model we could perform the quantization and dequantization on a 40GB A100.
+%For the 13B model we directly submitted the adapter layers to the HuggingFace leaderboard and used the ungated Llama-2-7b-hf model from NousResearch (the Meta-Llama model is gated and although it can be downloaded, we were not able to use it as a base model on the leaderboard).
 
 In Table \ref{table:hfleaderboard} we see that of the 7B models, the Meta-Llama-2-7b-chat performs the best on average with the Llama-2 model trained on ELI5 and Simple Wikipedia performing the second best.
 One surprising thing is the chat model actually performs worse than the base model on the Arc-Challenge dataset, and here the model trained on just Simple Wikipedia QA pairs performs the best. 
@@ -387,52 +397,10 @@ On the other datasets it barely improves over the model trained on the combined 
 We are not sure what the cause of this effect is, somehow training the model more on Reddit data makes the model more honest!
 This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate and/or after averaging over initializations the difference would go away or the model trained on the combined dataset would perform better.
 
-\subsection{MT(S)-Bench}
+\subsubsection{Judging the Validation Set with GPT-4}
 
-In this section we will investigate how well our models perform on a new MT-bench like dataset.
-The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
-There are two types of completion tasks, single-turn and multi-turn.
-For a single-turn problem, the model is given a prompt and asked to complete it.
-For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
-Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
 
-\begin{center}
-\begin{tabular}{c|c|c}
-    \hline
-    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
-    \hline
-    Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
-    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
-    Llama-2-7b-ELI5-wiki &  5.975000 &  2.966667 \\
-    Llama-2-7b-wiki &  5.108333 & 1.616667  \\
-    Llama-2-7b-ELI5 &  4.116667 & 1.733333  \\
-    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
-    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
-    Llama-2-7b-hf & 1.066667 &1.000000 \\
-    \hline
-\end{tabular}
-\end{center}
-
-Next let's look at the readability scores of each model on the single prompt:
-
-\begin{center}
-\begin{tabular}{c|c|c}
-    \hline
-    \textbf{Model} & \textbf{FRE}& \textbf{FKG} \\
-    \hline
-    Llama-2-7b-chat-hf &  42.21 & 12.50 \\ 
-    Llama-2-7b-ELI5-wiki-simple-merge & 60.55 & 9.60  \\
-    Llama-2-7b-ELI5-wiki &  53.41 &  10.20 \\
-    Llama-2-7b-wiki &  91.41 & 3.90 \\
-    Llama-2-7b-ELI5 &  63.19 & 8.50 \\
-    Llama-2-7b-wiki-simple-merge &  96.48& 2.00  \\
-    Llama-2-7b-ELI5-simple-merge & 78.65 & 4.70  \\
-    Llama-2-7b-hf & 29.86 &13.10 \\
-    \hline
-\end{tabular}
-\end{center}
-
-\subsection{ROUGE and BERTScore}
+\subsubsection{ROUGE and BERTScore}
 In this section we will investigate how supervised fine-tuning effects the models ROUGE and BERTScores.
 ROUGE is a well-known automated benchmark that measures n-gam overlap between generated text and the reference text.
 Since it just looks at n-gram overlaps, and does not take into account semantic content, ROUGE is effectively measuring to what extent the trained model is adopting the vocabulary of the reference text.
@@ -537,6 +505,53 @@ Given that a text is considered simpler if its grade level is lower and its read
 In the latter case, the readability also went up by about 1.6518 points while the grade level went up by 0.067.
 Once again, in this case our metrics for readability are moving in opposite directions. 
 Finally, from the table we also see that the model trained on just ELI5 tends to produce the simplest text. 
+
+
+\subsubsection{MT(S)-Bench}
+
+In this section we will investigate how well our models perform on a new MT-bench like dataset.
+The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
+There are two types of completion tasks, single-turn and multi-turn.
+For a single-turn problem, the model is given a prompt and asked to complete it.
+For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
+Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
+
+\begin{center}
+\begin{tabular}{c|c|c}
+    \hline
+    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
+    \hline
+    Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
+    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
+    Llama-2-7b-ELI5-wiki &  5.975000 &  2.966667 \\
+    Llama-2-7b-wiki &  5.108333 & 1.616667  \\
+    Llama-2-7b-ELI5 &  4.116667 & 1.733333  \\
+    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
+    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
+    Llama-2-7b-hf & 1.066667 &1.000000 \\
+    \hline
+\end{tabular}
+\end{center}
+
+Next let's look at the readability scores of each model on the single prompt:
+
+\begin{center}
+\begin{tabular}{c|c|c}
+    \hline
+    \textbf{Model} & \textbf{FRE}& \textbf{FKG} \\
+    \hline
+    Llama-2-7b-chat-hf &  42.21 & 12.50 \\ 
+    Llama-2-7b-ELI5-wiki-simple-merge & 60.55 & 9.60  \\
+    Llama-2-7b-ELI5-wiki &  53.41 &  10.20 \\
+    Llama-2-7b-wiki &  91.41 & 3.90 \\
+    Llama-2-7b-ELI5 &  63.19 & 8.50 \\
+    Llama-2-7b-wiki-simple-merge &  96.48& 2.00  \\
+    Llama-2-7b-ELI5-simple-merge & 78.65 & 4.70  \\
+    Llama-2-7b-hf & 29.86 &13.10 \\
+    \hline
+\end{tabular}
+\end{center}
+
 
 \bibliographystyle{utphys}
 \bibliography{refs}
