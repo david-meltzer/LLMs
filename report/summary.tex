@@ -184,7 +184,7 @@ This is a very general and powerful idea which allows us to use large LLMs to ge
 A nice feature of this method is that only the question is AI-generated, the answer itself is still human-written text which has been repurposed for a new task.
 A dataset of Simple Wikipedia articles is hosted on HuggingFace \href{https://huggingface.co/datasets/wikipedia/viewer/20220301.simple/train}{here} which we will use to generate the questions.
 
-\subsection{Creating Datasets}
+\subsection{Creating and Filtering the Datasets}
 RLHF involves three separate training steps, supervised fine-tuning, reward modeling, and reinforcement learning, so we therefore need three separate datasets.
 Each dataset also has its own train, validation, and test sets.
 To perform DPO we also need separate datasets for supervised fine-tuning and reward modeling.
@@ -204,8 +204,6 @@ To form the SFT and RM datasets we used the following procedure:
 We decided to remove URLs given the propensity of LLMs to hallucinate fake sources.
 Instead, we intend to use retrieval augmented generation (RAG) so our LLMs can properly cite sources.
 \item We removed any answers which are less than 20 words long, since these tend to be uninformative. 
-\item We removed any answers which received a score less than 4. 
-The original ELI5 dataset was constructed by only keeping posts that had a score of at least 2 and also contained answers with a score of at least two.
 \item We removed any posts that did not fit the question answer paradigm, e.g. if the title/post did not actually contain a question.
 There are many posts on these subreddits of these forms, e.g. r/AskScience has \href{https://www.reddit.com/r/askscience/comments/10wyuf9/ask_anything_wednesday_engineering_mathematics/}{``Ask Anything Wednesday"} posts where users ask questions and receive answers in the comments and r/AskHistorians has had meta posts on the state of the subreddit, see e.g. this \href{https://www.reddit.com/r/AskHistorians/comments/yfs7uh/askhistorians_has_hit_15_million_subscribers_to/}{post} celebrating the subreddit hitting 1.5 million subscribers. We manually went through the ELI5 dataset to identify and remove such posts.
 \item We removed answers which did not meet our simplicity criteria according to the \href{https://en.wikipedia.org/wiki/Flesch\%E2\%80\%93Kincaid_readability_tests}{Flesch-Kincaid readability metrics}. Specifically, we measured the simplicity of an answer by computing its Flesch reading ease (FRE) and Flesch-Kincaid grade level (FKG) scores. We only kept posts with FRE$\geq 60$, which corresponds to ``simple English" and FKG$< 9$, which corresponds to text which should be understandable by middle-school students and younger (the FKG score approximately corresponds to US school grade level). 
@@ -250,11 +248,14 @@ After inspecting various questions and their cosine-similarity, we decided to us
 If a training example overlapped significantly with an example in the validation or test sets, we removed it from the training set since the training dataset is much larger than the other two datasets.
 For the same reason, if an example in the test set overlapped significantly with a vector in the validation set, we removed it from the test set. After removing data leakage, the cleaning process for the SFT and RM datasets starts to differ slightly, so we will consider these two datasets separately for the remained of this section.
 \\[10pt]
-{\large \textbf{SFT}}
+{\large \textbf{Supervised Fine-Tuning}}
 \\[10pt]
 During supervised fine-tuning we are essentially teaching our model to imitate how humans (or more advanced LLMs) answer questions.
 To avoid our model imitating bad behavior, we need to perform extra filtering steps.
-To prevent the model from outputting toxic or offensive content, we used \href{https://github.com/unitaryai/detoxify}{Detoxify} from UnitaryAI to detect toxic content.
+As a first, basic filtering step, we only kept answer which received a score of at least 4 from the Reddit community. 
+The original ELI5 dataset was constructed by only keeping posts that had a score of at least 2 and also contained answers with a score of at least two.
+
+Next, to prevent the model from outputting toxic or offensive content, we used \href{https://github.com/unitaryai/detoxify}{Detoxify} from UnitaryAI to detect toxic content.
 Specifically, we use the ``unbiased" model which has a RoBERTa-Base model fine-tuned on the dataset from the following \href{https://www.kaggle.com/c/jigsaw-unintended-bias-in-toxicity-classification}{Kaggle competition}. This competition defined toxic content to be anything that is ``rude, disrespectful or otherwise likely to make someone leave a discussion." 
 The model from Detoxify scores assigns a score of 0-1 on the following 6 metrics: severe\_toxicity, obscene, threat, insult, identity\_attack, sexual\_explicit".
 Higher scores are associated to toxic text while lower scores are associated with safer text.
@@ -265,20 +266,73 @@ After performing the above cleaning steps, we trained Llama-2 models on the SFT 
 However, we noticed some issues with the model's generated text at inference time.
 In particular, the model had a tendency to end its posts with strings of text of the form: ``Edit: typos, Edit 2: Sorry caught more typos etc.". 
 Evidently, the model picked up on the fact that many Reddit posts by adding edits either correcting information in the post, adding additional sources, or thanking other users.
-To avoid our model learning this behavior, we filtered the SFT dataset to remove any answers which ended in this way.
+To avoid our model learning this behavior, we filtered the SFT dataset to remove any answers which ended in this way. 
 
+The final ELI5-SFT dataset contains a total of 41568 questions where the train\/validation\/test split is 38595/880/2093. 
+\\[10pt]
+{\large \textbf{Reward Modeling}}
+\\[10pt]
+For reward modeling we do not need to perform the same filtering steps as in SFT since we are now teaching the model to distinguish between good and bad responses.
+Therefore, we do not necessarily need to filter out all answers with a low score or which contain toxic content, we just need to ensure these answers are always in the ``rejected" column. 
+Similarly, we can also keep answers which end in "edit: caught typos" as long as they are also restricted to the rejected answer.
 
+When we originally performed DPO, we did not apply the above procedure: we kept answers with low scores, but we also filtered out all toxic content and did not filter out answers that end with superfluous edits. 
+We therefore need to repeat the DPO data cleaning and training procedure and will update this section once that has been completed.
+
+In addition, we also have freedom about which answers to keep in the reward modeling dataset.
+Recall that during the reward modeling step we typically perform a binary classification task.
+Therefore, if a question receives 10 different answers we can construct 45 different chosen/rejected pairs. In general, if we have $n$ answers then we have n(n-1)/2 number of pairs. One simple option is to treat pair independently. 
+However, it was pointed out in \cite{ouyang2022training} that doing this leads to overfitting since the model sees some questions much more frequently than other ones.
+To avoid this issue we will explore the following options:
+\begin{enumerate}
+\item For each question only keep one pair of answers. We can choose to keep the top two answers, the answers with the highest/lowest number of votes, or two random answers.
+By only keeping one pair of answers, we avoid overfitting, but we also throw out potentially useful data.
+\item For each question, we keep multiple pairs of answers, but rescale the loss function so that question/answer pairs are weighted inversely proportional to how many answers a question received.
+\end{enumerate}
+The second option was used in \cite{ouyang2022training} where the loss function is:
+\begin{align}
+\mathcal{L}_{\theta}=-\frac{1}{{K\choose 2}}\mathbb{E}_{(x,y_w,y_l)\sim \mathcal{D}}\left[\log \sigma\left(r_{\theta}(x,y_w)-r_{\theta}(x,y_l)\right)\right].
+\end{align}
+To be truly efficient, one should compute the reward associated to each answer separately, combine the result in a large vector, and then compute the pairwise differences between all the possible accepted/rejected columns.
+Given our memory limits and the size of the ELI5 QA pairs we cannot fit all the question/answer pairs into memory, so we will compute the loss on each pair separately.
+In addition, we will only keep a maximum of 10 pairs for each answer.
 
 \subsubsection{Simple Wikipedia}
 
+For Simple Wikipedia the data cleaning procedure is relatively simpler than for ELI5.
+Unlike for ELI5, all the QA pairs will be placed in the SFT dataset.
+The reason is simply that to perform reward modeling, we need to have two answers to compare against.
+At the moment we only have a single answer, text from the original Simple Wikipedia article, associated to each GPT-3.5 generated question, so we cannot perform any preference modeling, although there are ways around this we are exploring.
+In addition, the Simple Wikipedia is written in an encyclopedic format, so the articles do not contain toxic content.
 
-\subsection{EDA}
+All that said, we still need to clean the original Simple Wikipedia dataset before we actually use GPT-3.5 to generate questions or perform any fine-tuning.
+The original Simple Wikipedia dataset contains a total of 205328 articles which have not been split up into train/validation/test datasets.
+We then apply the following filtering steps:
+\begin{enumerate}
+\item We remove any articles which are less than 50 words long. Articles shorter than 50 words tend to be fairly uninformative.
+\item We define a ``truncated\_text" column which is defined to be the first few paragraphs of an article.
+To create the truncated article we concatenate paragraphs from the original article until the truncated article is at least 300 words long. After it reaches 300 words, or we reach the end of the original article, we stop adding new text. The truncated text will be our ``answer" when training the question-answering model.
+\item To avoid excessively long answers, we remove any answers which are more than 500 words long. This is done to ensure that the answers are both long-form and coherent.
+\item We compute the Flesch Readability Ease (FRE) and Flesch-Kincaid grade score (FKG) and only keep articles which have an FRE$\geq 60$ and a FKG$<9$.
+This is the same simplicity criteria as used for the Reddit data.
+\item Finally, we split the resulting dataset into train/validation/test sets where the validation and test sets contain 5000 articles and the training set contains the remaining articles.
+\end{enumerate}
+
+After applying the above filtering steps, we noticed some articles contained text which was not written in natural language. 
+Specifically, Wikipedia contains its own special markdown text for images and tables. 
+We therefore removed any articles which contained such text to avoid confusing the LLM.
+The resulting train/validation/test split of the Simple Wikipedia dataset contains 65254/4991/4997 articles.
+We then used GPT-3.5 to create questions whose answers are given in the truncated articles to create the Simple Wikipedia SFT dataset.
+
+\subsection{Exploratory Data Analysis}
+This section will be filled in with more details on the features of our datasets.
+
 \section{Model and Training}
 \section{SFT Inference Results}
 In this section we will summarize the results of Llama-2 models fine-tuned using supervised fine-tuning.
 
 \subsection{HuggingFace Leaderboard}
-First I'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
+First we'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
 The leaderboard is a wrapper for the ``Eleuther AI Language Model Evaluation Harness". 
 Specifically, the leaderboard measures the 25-shot performance of LLMs on the arc-challenge dataset, the 10-shot performance on the HellaSwag dataset, the 0-shot performance on TurthfulQA, and the 5-shot performance on MMLU. For arc-challenge and HellaSwag performance is measured using the acc$-$norm metric of EleutherAI, for TruthfulQA they use the mc2 metric, and for MMLU they average the accuracy of the model across tasks in the MMLU dataset.
 The nice thing about the leaderboard is one can submit either the full model or submit just the adapter layers and give the base model separately.

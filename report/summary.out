@@ -3,10 +3,10 @@
 \BOOKMARK [2][-]{subsection.1.2}{DPO}{section.1}% 3
 \BOOKMARK [1][-]{section.2}{Datasets}{}% 4
 \BOOKMARK [2][-]{subsection.2.1}{Sources}{section.2}% 5
-\BOOKMARK [2][-]{subsection.2.2}{Creating Datasets}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.2}{Creating and Filtering the Datasets}{section.2}% 6
 \BOOKMARK [3][-]{subsubsection.2.2.1}{ELI5}{subsection.2.2}% 7
 \BOOKMARK [3][-]{subsubsection.2.2.2}{Simple Wikipedia}{subsection.2.2}% 8
-\BOOKMARK [2][-]{subsection.2.3}{EDA}{section.2}% 9
+\BOOKMARK [2][-]{subsection.2.3}{Exploratory Data Analysis}{section.2}% 9
 \BOOKMARK [1][-]{section.3}{Model and Training}{}% 10
 \BOOKMARK [1][-]{section.4}{SFT Inference Results}{}% 11
 \BOOKMARK [2][-]{subsection.4.1}{HuggingFace Leaderboard}{section.4}% 12
