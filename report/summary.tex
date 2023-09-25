@@ -28,20 +28,79 @@
 
 In this project we will explore how to build a LLM that answers questions in a simple and safe ($S^{2}$) way.
 That is, we want an LLM which answers questions in a way which is understandable to schoolchildren and/or adults who are learning English while also not producing any potentially toxic or offensive content.
-To train the LLM we will use a combination of imitation learning and preference modeling. 
-The most well known method to align LLMs with human interests is Reinforcement Learning from Human Feedback (RLHF). RLHF is roughly given by the following three step procedure:
+To train the LLM we will use a combination of imitation learning and preference modeling.
+The two main algorithms we will explore are Reinforcement Learning from Human Feedback (RLHF) and Direct Preference Optimization (DPO). 
+In the remainder of this section we will briefly review these methods.
+We will not go through the detailed implementations of these algorithms (although this may be added in the future) but will instead focus on the overall challenges and benefits of each approach.
+
+ 
+ \subsection{RLHF}
+RLHF is the most well-known method used to align LLMs with human interests and is behind the success of chatbots such as ChatGPT and Claude.
+RLHF is roughly given by the following three step procedure:
 \begin{enumerate}
-\item We start by training the model using supervised fine-tuning (SFT). At this step we simply prompt the model with a question in the form ``\#\#\# Human: <question> \#\#\#Assistant:" and ask the model to autoregressively generate new text. This is called supervised fine-tuning because we have a reference human-written answer and want to minimize the KL-divergence between the reference text and the model generated text.
+\item We start by training the model using supervised fine-tuning (SFT). At this step we simply prompt the model with a question in the form ``\#\#\# Human: \{question\} \#\#\#Assistant:" and ask the model to autoregressively generate new text. This is called supervised fine-tuning because we have a reference human-written answer and want to minimize the KL-divergence between the reference text and the model generated text. Despite its name, SFT is essentially the same as pretraining, except we do not compute the loss on the prompt.
+
 \item Next, we perform reward modeling (RM), which is a preference modeling task.
 In this step, we take another neural net and present it with a question and two answers, one of which is labelled ``chosen" and the other one is labelled ``rejected".
 At this step, the goal is to teach the model to identify which answer is preferred over the other, i.e. to learn human preferences via sequence classification. 
-Typically the reward model is taken to be the LLM from step (1), but we replace the head of the SFTed model with a classification layer.
+Typically the reward model is taken to be the LLM from step (1), but we replace the head of the SFTed model with a layer to compute the reward function $r(Q,A)$ and train the model with a loss function such that the model assigns higher rewards to the chosen answer and lower rewards to the rejected answer. 
+
 \item Finally, we use the reward model from step (2) to train the SFTed model from step (1) using reinforcement learning.
 Specifically, the model is trained using Proximal Policy Optimization (PPO).
 At this step it helps to add a term to the reward modeling objective proportional to the KL-divergence between the SFT model we are training and the original SFT from step (1).
 The addition of a KL penalty helps ensure that the model trained with RL does not deviate too strongly from the original model and produce low-quality text that simply ``hacks" the reward model.
 \end{enumerate}
 
+RLHF is clearly a non-trivial algorithm to implement in practice. 
+The simplest step to implement is the SFT since the training objective is essentially identical to the pretraining objective. 
+In addition, if we have a dataset of high enough quality, we arguably do not need to perform many steps of supervised fine-tuning, e.g. in the LIMA paper they achieved remarkable after only training the model with SFT on 1000 examples!
+
+The second step, reward modeling, is simple to implement in principle, but in practice can be very subtle and difficult to get right.
+For one, we are trying to teach a model what human preferences are by simply ranking two answers.
+This may be too rough of a metric to actually determine human preferences, e.g. what answer is preferred over the another may depend on how the question is written and who the intended audience is.
+In addition, what answer is considered the ``best" will be biased by the preferences of whoever is ranking the answer, and their preferences may not be universal.
+%On internet sites, such as Reddit, one answer may also receive more votes than another simply because it appeared earlier, and not because it is of a genuinely higher quality.
+In theory, it may also be better to have multiple reward models to judge different aspects of an answer, as opposed to having one reward model which is supposed to determine the quality of the answer in full.\footnote{We may want separate reward models to separately judge the simplicity, helpfulness, and harmfulness of the answer.}
+However, despite its simplicity, learning human preferences by ranking answers has proven remarkably successful and is also a natural starting point for solving the alignment problem.
+%All that being said, one reason why training a reward model on data from sites such as Reddit or StackExchange is useful is because actually getting human preference data is non-trivial and these sites give us access to both a wide scope of data on which we can get started.
+%In addition, by using the ``Wisdom of the crowd" of users who vote on answers, we can potentially avoid biasing the data by the preferences of a small group of labellers (of course the demographics of users on these sites is also biased towards certain groups and this should also be taken into account).
+
+To successfully perform reward modeling, we also need to ensure that our preference dataset is of a high-enough quality such that we can use our trained reward model during the reinforcement learning step.
+The general wisdom currently is that the reward model needs to be achieving accuracies of around $70\%$ (and ideally higher) before we can use it for reinforcement learning.
+The fact these accuracies are fairly low is a testament to the fact that reward modeling by itself is a non-trivial task!
+We also need to ensure the preference modeling dataset is of a wide enough scope such that the reward model knows how to properly judge answers that are generated during reinforcement learning.
+For example, a model trained only to judge answers about math may not accurately judge answers about other topics, such as history or politics.
+
+The final step of RLHF, implementing PPO, is more technically challenging than the previous steps.
+The PPO algorithm requires that we have a value function, a reward model, the policy function (the LLM currently being trained), and the initial SFTed model (which serves as our reference model). 
+Therefore, during PPO we have to keep four separate models in models, and they are all LLMs!
+For this reason, the PPO step can be fairly memory intensive.
+To avoid out-of-memory errors, and also spending too much money on GPUs, we either need to use relatively small LLMs and/or use parameter efficient methods such as QLoRA.
+In addition, it is well-known that training a model with RL is more difficult than training a model using supervised learning and that RL algorithms tend to be more sensitive to hyperparameters and choices of initialization.
+For this reason, we RL typically requires more hyperparameter optimization than supervised or unsupervised learning.
+
+\subsection{DPO}
+DPO is a newer algorithm designed to achieve the same objective as RLHF using only supervised learning.
+DPO is a supervised learning algorithm that optimizes the same objective as RLHF, except without needing to train a separate reward model (hence the subtitle of the paper, ``Your Language Model is Secretly a Reward Model") and without needing to perform reinforcement learning.
+To do this, they use an exact map between reward functions to optimal policies such that the loss function on the reward model becomes a loss function on the policy model.
+Therefore, step (2) of the RLHF algorithm, performing supervised learning on the reward model, turns into a supervised learning problem on the policy function directly, which in our case is the SFTed LLM.
+
+DPO is therefore a two step procedure:
+\begin{enumerate}
+\item Perform supervised fine-tuning on a pre-trained LLM in the same exact way as step one of RLHF.
+\item Take the model from step (1) and train it to learn human preferences directly using the DPO loss function.  
+\end{enumerate} 
+
+DPO is clearly a simpler algorithm to implement than RLHF and since we are using supervised learning, it is also expected to be more stable.
+Given that it is easier to implement, we will start by using DPO to align our LLMs and use the results from DPO as a benchmark for RLHF. 
+In the original DPO paper it was also shown that DPO achieves comparable or better results than RLHF, so we expect DPO will serve as a strong benchmark for RLHF, or any other algorithm to align LLMs. 
+
+Are there any downsides to DPO?
+One potential downside, given its current incarnation, is that there may be cases where we want a separate reward model.
+This is brought up in the DPO paper, where they mention that having a separate reward model may be useful to label currently unlabelled prompts, and it is less clear if performing self labelling using the LLM (which is also being trained) is equally effective.
+In addition, as brought up earlier, it may be useful to have multiple reward models to capture different aspects of an answer, e.g. helpfulness vs simplicity. 
+This theoretically can be implemented in RLHF but it is not clear how to do this using DPO directly.
+Finally, like most implementations of RLHF, the DPO algorithm assigns a single score to an entire answer and does not yet take into account fine-grained human preferences.
 
 \section{Datasets}
 \subsection{Sources}
@@ -51,15 +110,23 @@ In this section we will go into detail on the form of these datasets and in the 
 The ELI5 dataset gets its name from the subreddit Explain Like I'm Five (r/ELI5) on reddit.com.
 The stated goal of the ELI5 subreddit is to provide a place where people can ask questions on a wide variety of topics and receive a layperson-friendly explanation.
 Commentators are requested to answer a question without assuming ``knowledge beyond a typical secondary education program" and in general to keep answers clear and simple.
-The ELI5 dataset also contains question/answer pairs from the r/AskHistorians and r/AskScience subreddits. The r/AskHistorians is well-known to be a well-moderated community where answers are particularly in-depth and clear. The quality of posts on r/AskScience is also high and users generally receive clear answers to fairly technical questions.
-We can generally use the ELI5 dataset to train a question/answer model by using the title and body of the post as the question and highly-voted comments as the answers.
+The ELI5 dataset also contains question/answer pairs from the r/AskHistorians and r/AskScience subreddits. The r/AskHistorians is well-known to be a well-moderated community where answers are particularly in-depth and clear. 
+Low quality answers, e.g. ones that do not answer the original question or do not properly cite sources, are typically removed.
+The quality of posts on r/AskScience is also high and users generally receive clear answers to fairly technical questions.
+However, the moderation on r/AskScience is less strict than on r/AskHistorians.
+We will use the ELI5 dataset to train a question/answer model by using the title and body of the post as the question and highly-voted comments as the answers.
 
 Simple Wikipedia is a version of Wikipedia where users are encouraged to write articles using basic English.
 On the Simple Wikipedia homepage they write: ``The Simple English Wikipedia is for everyone, such as children and adults who are learning English."
 They also encourage users to write shorter sentences, while not necessarily requiring that the articles also be short.
-In particular, the focus is that the articles are written with simple words and grammar, but do not necessarily contain "basic information".
-Unlike the ELI5 dataset, we can not use the Simple Wikipedia dataset out of the box to train a question-answering model since articles are not typically written in that style.
-Instead, we will use GPT-3.5 to generate questions whose answer is contained in the first few paragraphs of the Simple Wikipedia article.
+In particular, users are told to write articles using simple words and grammar, but to not necessarily only use "basic information".
+Unlike the ELI5 dataset, we cannot use the Simple Wikipedia dataset out of the box to train a question-answering model since the articles are not written in that style.
+Instead, we will use GPT-3.5 to generate questions whose answer is contained in the first few paragraphs of the Simple Wikipedia article. 
+Specifically, we give GPT-3.5 the following prompt:
+\\[5pt]
+
+\\
+\\
 This is a very general and powerful idea which allows us to use large LLMs to generate whole new datasets from existing text.
 A nice feature of this method is that only the question is AI-generated, the answer itself is simply human-written text which has been repurposed for a new task.
 
