@@ -156,7 +156,7 @@ Low quality answers, e.g. ones that do not answer the original question or do no
 The quality of posts on r/AskScience is also high and users generally receive clear answers to fairly technical questions, although the moderation appears to be less strict than on r/AskHistorians.
 We will use the ELI5 dataset to train a question/answer model by using the title and body of the post as the question and highly-voted comments as the answers.
 
-The original ELI5 dataset was created by researchers at Facebook \cite{fan-etal-2019-eli5} and the original ELI5 dataset can be found \href{https://huggingface.co/datasets/eli5}{here}.
+The original ELI5 dataset was created by researchers at Facebook \cite{fan-etal-2019-ELI5} and the original ELI5 dataset can be found \href{https://huggingface.co/datasets/ELI5}{here}.
 However, one potential issue with this dataset is that there is a large amount of data leakage between the train/validation/test splits \cite{krishna2021hurdles,mahapatra2021new}.
 For this reason, we will use a cleaned version of the ELI5 dataset which was constructed by the second group and can be found \href{https://huggingface.co/datasets/vblagoje/lfqa}{here}.
 This dataset will also require some cleaning due to data leakage, but overall its cleaner than the previous version of the ELI5 dataset.
@@ -349,6 +349,21 @@ For this reason, unless stated explicitly, we will always use the careful merge 
 
 \subsection{Supervised Fine-Tuning}
 In this section we will summarize the results of Llama-2 models fine-tuned using supervised fine-tuning.
+Before presenting the results, it may be useful at this point to summarize our naming conventions for the models:
+\begin{itemize}
+\item Llama-2-7b: The base Llama-2 model which is available on Huggingface.
+\item Llama-2-7b-chat: The Llama-2 model which has undergone RLHF by researchers at Meta.
+\item Llama-2-7b-ELI5: Llama-2 model fine-tuned on the ELI5 dataset. For these models we did not remove posts that end in ``edits".
+\item Llama-2-7b-wiki: Llama-2 model fine-tuned on the Simple Wikipedia QA dataset.
+\item Llama-2-7b-ELI5-wiki: Llama-2 model fine-tuned on the combined ELI5 and Simple Wikipedia dataset. Answers in the ELI5 dataset that include ``edits" have not been removed.
+\item Llama-2-7b-ELI5-cleaned and Llama-2-7b-ELI5-cleaned-wiki: Same as above, but answers in ELI5 with ``edits" have been removed. 
+\end{itemize}
+We use the same naming conventions for the Llama-2-13B models. 
+We included the two versions of the ELI5 dataset because we were curious to what extent including posts that end in ``edits" help or hurt the models performance on various benchmarks.
+
+At the moment, not all tables include all possible models.
+For example, we have not yet submitted the "ELI5-cleaned" models to the HF leaderboard to avoid spamming it and we still need to measure how well the RLHFed chat models perform on our validation datasets.
+This remains a work in progress and the tables below will be updated once we have new results.
 
 \subsubsection{HuggingFace Leaderboard}
 First we'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
@@ -385,7 +400,7 @@ In Table \ref{table:hfleaderboard}, Llama-2-7b is the base 7 billion model and L
 The remaining models are our fine-tuned versions of the base-model. 
 Specifically, they are trained using SFT and QLoRA on the ELI5 SFT dataset, the Simple Wikipedia Instruct dataset, or their combination. The second half of the table is the same, except for the 13B parameter model.
 For the 13B parameter models we submitted the adapter and base models separately, so we believe they are merged using the simple merge procedure.
-In addition, we used the ungated Llama-2-7b-hf model from NousResearch as the base model since the Meta-Llama-2-7b is gated and cannot be used as a base model.
+In addition, we used the ungated Llama-2-7b model from NousResearch as the base model since the Meta-Llama-2-7b is gated and cannot be used as a base model.
 We have submitted the merge 13B parameter models using the careful merge and will update the table once results become available.
 
 In Table \ref{table:hfleaderboard} we see that of the 7B models, the Meta-Llama-2-7b-chat performs the best on average with the Llama-2 model trained on ELI5 and Simple Wikipedia performing the second best.
@@ -414,148 +429,284 @@ We include the original Llama-2 model as a baseline to measure how much fine-tun
 In addition, we also include ``off-diagonal" elements, where we train a model on one dataset and measure its ROUGE and BERTScores on the validation split of a different dataset.
 For example, we include cases where we train the model on the ELI5 SFT dataset and then evaluate it on the validation split of the Simple Wikipedia QA dataset.
 We included these results to serve as additional baselines to see to what extent fine-tuning on \textit{any} QA dataset changes the evaluation metrics.
-In all cases, the model produces at most 512 new tokens.
+In all cases, we limit the model to produce at most 512 new tokens.
+\\[10pt]
+\textbf{Llama-2-7B}
+\\[10pt]
+First we will look at the ROUGE and BERTScore for the 7 billion parameter models.
 
-\begin{table}[htbp]
+\begin{table}
 \centering
-\begin{tabular}{cccccc}
-\toprule
-\textbf{Dataset} & \textbf{Model} & \textbf{rouge1} & \textbf{rouge2} & \textbf{rougeL} & \textbf{rougeLsum} \\
-\midrule
-\multirow{4}{*}{ELI5} & Llama-2-7b & \textbf{0.3796} & \textbf{0.2432} & \textbf{0.3000} & \textbf{0.3222} \\
-& Llama-2-7b-ELI5 & 0.3701 & 0.2140 & 0.2736 & 0.2821 \\
-& Llama-2-7b-wiki & 0.3575 & 0.2083 & 0.2660 & 0.2762 \\
-& Llama-2-7b-ELI5-wiki & 0.3702 & 0.2126 & 0.2733 & 0.2819 \\
-\midrule
-\multirow{4}{*}{wiki} & Llama-2-7b & 0.1923 & 0.0103 & 0.0937 & \textbf{0.1392} \\
-& Llama-2-7b-ELI5 & \textbf{0.2203} & \textbf{0.0125} & \textbf{0.0964} & 0.1271 \\
-& Llama-2-7b-wiki & 0.1826 & 0.0073 & 0.0879 & 0.1165 \\
-& Llama-2-7b-ELI5-wiki & 0.1811 & 0.0076 & 0.0885 & 0.1153 \\
-\midrule
-\multirow{4}{*}{full} & Llama-2-7b & 0.1944 & 0.0087 & 0.0905 & \textbf{0.1400} \\
-& Llama-2-7b-ELI5 & \textbf{0.2243} & \textbf{0.0118} & \textbf{0.0971} & 0.1312 \\
-& Llama-2-7b-wiki & 0.1905 & 0.0079 & 0.0889 & 0.1198 \\
-&Llama-2-7b-ELI5-wiki & 0.1907 & 0.0080 & 0.0894 & 0.1193 \\
-\bottomrule
+\begin{tabular}{cccccccc}
+\hline
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Model}} & \multicolumn{4}{c}{\textbf{Rouge Scores}} \\
+& & Rouge1 & Rouge2 & RougeL & RougeLsum \\
+\hline
+ELI5 & Llama-2-7b & \textbf{0.298242} & \textbf{0.169967} & \textbf{0.220854} & \textbf{0.249894} \\
+ & Llama-2-7b-ELI5-cleaned & 0.283993 & 0.147441 & 0.196752 & 0.205185 \\
+ & Llama-2-7b-ELI5-cleaned-wiki & 0.295221 & 0.150033 & 0.202925 & 0.211811 \\
+ & Llama-2-7b-ELI5 & 0.291572 & 0.146365 & 0.200459 & 0.208918 \\
+ & Llama-2-7b-wiki & 0.270159 & 0.142462 & 0.189260 & 0.200517 \\
+ & Llama-2-7b-ELI5-wiki & 0.290616 & 0.146193 & 0.198206 & 0.206501 \\
+\hline
+wiki & Llama-2-7b & 0.176498 & 0.009671 & 0.076387 & \textbf{0.124844} \\
+ & Llama-2-7b-ELI5-cleaned & 0.187632 & 0.010378 & 0.076244 & 0.101758 \\
+ & Llama-2-7b-ELI5-cleaned-wiki & 0.165338 & 0.008570 & 0.073524 & 0.100247 \\
+ & Llama-2-7b-ELI5 & \textbf{0.201359} & \textbf{0.011395} & \textbf{0.081669} & 0.109511 \\
+ & Llama-2-7b-wiki & 0.171231 & 0.008440 & 0.073053 & 0.101656 \\
+ & Llama-2-7b-ELI5-wiki & 0.172416 & 0.008493 & 0.074630 & 0.101207 \\
+ \hline
+full & Llama-2-7b & 0.174103 & 0.009100 & 0.073723 & \textbf{0.122725} \\
+ & Llama-2-7b-ELI5-cleaned & 0.183474 & 0.010084 & 0.073874 & 0.099860 \\
+ & Llama-2-7b-ELI5-cleaned-wiki & 0.171299 & 0.009011 & 0.076227 & 0.102450 \\
+ & Llama-2-7b-ELI5 & \textbf{0.195238} & \textbf{0.012030} & \textbf{0.080949} & 0.108134 \\
+ & Llama-2-7b-wiki & 0.172261 & 0.007845 & 0.072799 & 0.101760 \\
+ & Llama-2-7b-ELI5-wiki & 0.178148 & 0.009197 & 0.075710 & 0.103487 \\
+\hline
 \end{tabular}
-\caption{Rouge Scores}
 \label{tab:rouge_scores}
+\caption{Rouge Scores at 7 billion.}
 \end{table}
 
-\begin{table}[htbp]
+\begin{table}
 \centering
 \begin{tabular}{ccccc}
-\toprule
-\textbf{Dataset} & \textbf{Model} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
-\midrule
-\multirow{4}{*}{ELI5} & Llama-2-7b & \textbf{0.8429} & 0.8754 & 0.8583 \\
-& Llama-2-7b-ELI5 & 0.8372 & \textbf{0.8799} & 0.8575 \\
-& Llama-2-7b-wiki & 0.8415 & 0.8796 & \textbf{0.8598} \\
-& Llama-2-7b-ELI5-wiki & 0.8399 & 0.8798 & 0.8590 \\
-\midrule
-\multirow{4}{*}{wiki} & Llama-2-7b & \textbf{0.7879} & 0.8067 & 0.7970 \\
-& Llama-2-7b-ELI5 & 0.7859 & \textbf{0.8093} & \textbf{0.7971} \\
-& Llama-2-7b-wiki & 0.7782 & 0.8019 & 0.7898 \\
-& Llama-2-7b-ELI5-wiki & 0.7783 & 0.8014 & 0.7896 \\
-\midrule
-\multirow{4}{*}{full} & Llama-2-7b & \textbf{0.7940} & 0.8092 & 0.8014 \\
-& Llama-2-7b-ELI5 & 0.7933 & \textbf{0.8116} & \textbf{0.8022} \\
-& Llama-2-7b-wiki  & 0.7861 & 0.8048 & 0.7952 \\
-& Llama-2-7b-ELI5-wiki & 0.7841 & 0.8046 & 0.7941 \\
-\bottomrule
+\hline
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Model}} & \multicolumn{3}{c}{\textbf{BERTScores}} \\
+& & Precision & Recall & F1 \\
+\hline
+ELI5 & Llama-2-7b & \textbf{0.801877} & 0.870131 & 0.833800 \\
+ & Llama-2-7b-ELI5-cleaned & 0.796125 & 0.874431 & 0.832937 \\
+ & Llama-2-7b-ELI5-cleaned-wiki & 0.796381 & \textbf{0.875127} & 0.833397 \\
+ & Llama-2-7b-ELI5 & 0.800753 & 0.874340 & \textbf{0.835400} \\
+ & Llama-2-7b-wiki & 0.796885 & 0.873895 & 0.833161 \\
+ & Llama-2-7b-ELI5-wiki & 0.800286 & 0.874562 & 0.835300 \\
+\hline
+wiki & Llama-2-7b & 0.757215 & 0.806786 & 0.780903 \\
+ & Llama-2-7b-ELI5-cleaned & 0.751758 & 0.809001 & 0.778959 \\
+ & Llama-2-7b-ELI5-cleaned-wiki & 0.759401 & 0.802026 & 0.780010 \\
+ & Llama-2-7b-ELI5 & \textbf{0.767562} & \textbf{0.809001}$^{*}$ & \textbf{0.787453} \\
+ & Llama-2-7b-wiki & 0.761045 & 0.803481 & 0.781521 \\
+ & Llama-2-7b-ELI5-wiki & 0.760068 & 0.803064 & 0.780798 \\
+ \hline
+full & Llama-2-7b & 0.762537 & 0.808076 & 0.784422 \\
+ & Llama-2-7b-ELI5-cleaned & 0.759690 & \textbf{0.810161} & 0.783819 \\
+ & Llama-2-7b-ELI5-cleaned-wiki & 0.763620 & 0.804014 & 0.783156 \\
+ & Llama-2-7b-ELI5 & \textbf{0.765416} & 0.809050 & \textbf{0.786301} \\
+ & Llama-2-7b-wiki & 0.764166 & 0.805436 & 0.784094 \\
+ & Llama-2-7b-ELI5-wiki & 0.763022 & 0.805353 & 0.783447 \\
+\hline
 \end{tabular}
-\caption{Precision, Recall, and F1 BERTScores}
+\caption{BERTScore Precision, Recall, and F1 Scores at 7 Billion}
 \label{tab:scores}
 \end{table}
 
-It's difficult to interpret or make sense of these results, somehow the base Llama-2 model often outperforms the fine-tuned models and the model trained on just the ELI5 dataset often performs very well on the Simple Wikipedia validation set!
-It is probably best to take these numbers with a grain of salt. The BERTScore metrics tend to differ by very small amounts, e.g. the difference in F1 scores between the base model and the model trained on ELI5 for the Simple Wikipedia validation set differ by just 0.001.
-In addition, we of course do not know on what data the original Llama-2 model was trained and if there is data leakage.
 
-Finally, let's look at the Flesch readability ease (FRE) and Flesch-Kincaid grade (FKG) metrics. 
-\begin{table}[h]
+%It's difficult to interpret or make sense of these results, somehow the base Llama-2 model often outperforms the fine-tuned models and the model trained on just the ELI5 dataset often performs very well on the Simple Wikipedia validation set!
+%It is probably best to take these numbers with a grain of salt. The BERTScore metrics tend to differ by very small amounts, e.g. the difference in F1 scores between the base model and the model trained on ELI5 for the Simple Wikipedia validation set differ by just 0.001.
+%In addition, we of course do not know on what data the original Llama-2 model was trained and if there is data leakage.
+
+%Finally, let's look at the Flesch readability ease (FRE) and Flesch-Kincaid grade (FKG) metrics. 
+\begin{table}
 \centering
-\begin{tabular}{|c|c|c|c|}
+\begin{tabular}{cccccc}
 \hline
-\textbf{Dataset} & \textbf{Model} & \textbf{FRE} & \textbf{FKG} \\
+Dataset & Model &FKG Score & FRE \\
 \hline
-\multirow{4}{*}{ELI5} & Llama-2-7b & 58.2425 & 10.075 \\
-& Llama-2-7b-ELI5 & 67.6357 & 8.148  \\
-& Llama-2-7b-wiki & 58.7145 & 10.526 \\
-& Llama-2-7b-ELI5-wiki & 65.6862 &8.704  \\
+\multirow{6}{*}{eli5} & Llama-2-7b & 10.799 & 52.6770 \\
+ & Llama-2-7b-eli5-cleaned & 11.015 & 55.2385 \\
+ & Llama-2-7b-eli5-cleaned-wiki & 9.635 & 61.0496 \\
+ & Llama-7b-eli5 & 8.509 & 65.0010 \\
+ & Llama-7b-wiki & 13.777 & 44.7725 \\
+ & Llama-7b-eli5-wiki & 9.237 & 61.9205 \\
 \hline
-\multirow{4}{*}{wiki} & Llama-2-7b-hf & 64.1040 & 8.172\\
-& Llama-2-7b-ELI5 & 72.5682&6.988 \\
-& Llama-2-7b-wiki & 66.5824 &8.055\\
-& Llama-2-7b-ELI5-wiki & 65.7558 &8.239\\
+\multirow{6}{*}{wiki} & Llama-2-7b & 11.013 & 51.4365 \\
+ & Llama-2-7b-eli5-cleaned & 10.037 & 60.3884 \\
+ & Llama-2-7b-eli5-cleaned-wiki & 10.148 & 58.3621 \\
+ & Llama-7b-eli5 & 7.606 & 69.1257 \\
+ & Llama-7b-wiki & 10.695 & 55.8206 \\
+ & Llama-7b-eli5-wiki & 9.982 & 57.5070 \\
 \hline
-\multirow{4}{*}{full} & Llama-2-7b & 65.0452&8.472 \\
-& Llama-2-7b-ELI5 & 72.5278&7.092 \\
-& Llama-2-7b-wiki & 66.8147&8.252 \\
-& Llama-2-7b-ELI5-wiki & 65.8295 &8.417\\
+\multirow{6}{*}{full} & Llama-2-7b & 11.636 & 48.9020 \\
+ & Llama-2-7b-eli5-cleaned & 11.270 & 54.0539 \\
+ & Llama-2-7b-eli5-cleaned-wiki & 10.054 & 57.9690 \\
+ & Llama-7b-eli5 & 7.855 & 68.6513 \\
+ & Llama-7b-wiki & 10.681 & 55.5700 \\
+ & Llama-7b-eli5-wiki & 10.314 & 56.8602 \\
 \hline
 \end{tabular}
-\caption{Flesch Readability Metrics}
+\caption{FKG and FRE Scores at 7B.}
+\label{tab:scores}
 \end{table}
-We see that for the most part, the fine-tuned models have a higher readability score and a lower grade level.
-There are two noticeable exceptions, the model trained on Simple Wikipedia QA pairs and evaluated on the ELI5 validation set has a higher grade level than the original base model.
-In addition, the model trained on ELI5 and Simple Wikipedia has a slightly higher grade level than the base model when evaluated on the Simple Wikipedia validation set. 
-In the former case, the grade level went up by 0.451 while the readability also went up by 0.472.
-Given that a text is considered simpler if its grade level is lower and its readability is higher, in this case our automatic metrics are inconclusive.
-In the latter case, the readability also went up by about 1.6518 points while the grade level went up by 0.067.
-Once again, in this case our metrics for readability are moving in opposite directions. 
-Finally, from the table we also see that the model trained on just ELI5 tends to produce the simplest text. 
+\
+\\[10pt]
+\noindent\textbf{13B Models}
+\\[10pt]
+
+%\documentclass{article}
+%\usepackage{multirow}
+%\usepackage{booktabs}
+
+
+\begin{table}
+\centering
+\begin{tabular}{ccccccc}
+\toprule
+\multirow{2}{*}{Dataset} & \multirow{2}{*}{Model} & \multicolumn{4}{c}{ROUGE Scores} \\
+& & Rouge1 & Rouge2 & RougeL & RougeL Sum \\
+\midrule
+eli5 & Llama-2-13b & \textbf{0.307036} & \textbf{0.178356} & \textbf{0.231862} & \textbf{0.262145} \\
+ & Llama-2-13b-eli5 & 0.297083 & 0.152397 & 0.203960 & 0.211767 \\
+ & Llama-2-13b-wiki & 0.276979 & 0.146025 & 0.192577 & 0.207555 \\
+ & Llama-2-13b-eli5-cleaned & 0.296337 & 0.154060 & 0.206790 & 0.216839 \\
+ & Llama-2-13b-eli5-cleaned-wiki & 0.292577 & 0.150114 & 0.203237 & 0.213226 \\
+ & Llama-2-13b-eli5-wiki & 0.293318 & 0.150636 & 0.202581 & 0.211361 \\
+ \midrule
+wiki & Llama-2-13b & 0.172371 & 0.008867 & 0.080224 & \textbf{0.131003} \\
+ & Llama-2-13b-eli5 & \textbf{0.199945} & \textbf{0.012095} & 0.081180 & 0.107829 \\
+ & Llama-2-13b-wiki & 0.160476 & 0.008063 & 0.071458 & 0.097539 \\
+ & Llama-2-13b-eli5-cleaned & 0.194477 & 0.011931 & \textbf{0.083820} & 0.112514 \\
+ & Llama-2-13b-eli5-cleaned-wiki & 0.166615 & 0.008272 & 0.076125 & 0.102790 \\
+ & Llama-2-13b-eli5-wiki & 0.170214 & 0.008031 & 0.076448 & 0.102741 \\
+\midrule
+full & Llama-2-13b & 0.179198 & 0.010034 & \textbf{0.080540} & \textbf{0.136330} \\
+ & Llama-2-13b-eli5 & 0.192517 & 0.010882 & 0.079189 & 0.106259 \\
+ & Llama-2-13b-wiki & 0.169410 & 0.008547 & 0.073242 & 0.103058 \\
+ & Llama-2-13b-eli5-cleaned & \textbf{0.194476} & \textbf{0.011373} & 0.079118 & 0.109070 \\
+ & Llama-2-13b-eli5-cleaned-wiki & 0.174734 & 0.009346 & 0.076203 & 0.103274 \\
+ & Llama-2-13b-eli5-wiki & 0.177194 & 0.009303 & 0.077117 & 0.106490 \\
+\bottomrule
+\end{tabular}
+\caption{ROUGE Scores at 13B}
+\label{tab:rouge_scores_13B}
+\end{table}
+
+
+
+
+\begin{table}
+\centering
+\caption{Precision, Recall, and F1 Scores}
+\label{tab:scores}
+\begin{tabular}{ccccc}
+\toprule
+\multirow{2}{*}{Dataset} & \multirow{2}{*}{Model} & \multicolumn{3}{c}{Scores} \\
+& & Precision & Recall & F1 \\
+\midrule
+eli5 & Llama-2-13b & \textbf{0.809857} & 0.867220 & \textbf{0.836836} \\
+ & Llama-2-13b-eli5 & 0.798846 & 0.875494 & 0.834867 \\
+ & Llama-2-13b-wiki & 0.798620 & 0.873480 & 0.833842 \\
+ & Llama-2-13b-eli5-cleaned & 0.797193 & 0.874779 & 0.833683 \\
+ & Llama-2-13b-eli5-cleaned-wiki & 0.801264 & \textbf{0.875635} & 0.836282 \\
+ & Llama-2-13b-eli5-wiki & 0.798668 & 0.874713 & 0.834404 \\
+ \midrule
+wiki & Llama-2-13b & \textbf{0.767963} & 0.806237 & \textbf{0.786290} \\
+ & Llama-2-13b-eli5 & 0.765266 & 0.809021 & 0.786184 \\
+ & Llama-2-13b-wiki & 0.758040 & 0.802729 & 0.779571 \\
+ & Llama-2-13b-eli5-cleaned & 0.761583 & \textbf{0.809147} & 0.784166 \\
+ & Llama-2-13b-eli5-cleaned-wiki & 0.757777 & 0.801432 & 0.778813 \\
+ & Llama-2-13b-eli5-wiki & 0.759304 & 0.802938 & 0.780317 \\
+\midrule
+full & Llama-2-13b & \textbf{0.770812} & 0.807195 & \textbf{0.788337} \\
+ & Llama-2-13b-eli5 & 0.760788 & \textbf{0.809554} & 0.784043 \\
+ & Llama-2-13b-wiki & 0.762699 & 0.805210 & 0.783167 \\
+ & Llama-2-13b-eli5-cleaned & 0.759319 & 0.809498 & 0.783123 \\
+ & Llama-2-13b-eli5-cleaned-wiki & 0.763689 & 0.805197 & 0.783752 \\
+ & Llama-2-13b-eli5-wiki & 0.763758 & 0.804731 & 0.783494 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+%We see that for the most part, the fine-tuned models have a higher readability score and a lower grade level.
+%There are two noticeable exceptions, the model trained on Simple Wikipedia QA pairs and evaluated on the ELI5 validation set has a higher grade level than the original base model.
+%In addition, the model trained on ELI5 and Simple Wikipedia has a slightly higher grade level than the base model when evaluated on the Simple Wikipedia validation set. 
+%In the former case, the grade level went up by 0.451 while the readability also went up by 0.472.
+%Given that a text is considered simpler if its grade level is lower and its readability is higher, in this case our automatic metrics are inconclusive.
+%In the latter case, the readability also went up by about 1.6518 points while the grade level went up by 0.067.
+%Once again, in this case our metrics for readability are moving in opposite directions. 
+%Finally, from the table we also see that the model trained on just ELI5 tends to produce the simplest text. 
+
 
 
 \subsubsection{Judging the Validation Set with GPT-4}
 
-
-\subsubsection{MT(S)-Bench}
-
-In this section we will investigate how well our models perform on a new MT-bench like dataset.
-The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
-There are two types of completion tasks, single-turn and multi-turn.
-For a single-turn problem, the model is given a prompt and asked to complete it.
-For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
-Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
-
-\begin{center}
-\begin{tabular}{c|c|c}
-    \hline
-    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
-    \hline
-    Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
-    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
-    Llama-2-7b-ELI5-wiki &  5.975000 &  2.966667 \\
-    Llama-2-7b-wiki &  5.108333 & 1.616667  \\
-    Llama-2-7b-ELI5 &  4.116667 & 1.733333  \\
-    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
-    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
-    Llama-2-7b-hf & 1.066667 &1.000000 \\
-    \hline
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|}
+\hline
+Model Name & Score \\
+\hline
+Llama-2-7b-eli5-cleaned-wiki & 3.89 \\
+Llama-2-7b-wiki & 3.58 \\
+Llama-2-7b-eli5-wiki & 3.45 \\
+Llama-2-7b & 2.92 \\
+Llama-2-7b-eli5-cleaned & 2.58 \\
+Llama-7b-eli5 & 2.43 \\
+\hline\hline 
+Llama-2-13b-eli5-wiki & 4.91 \\
+Llama-2-13b-eli5-cleaned-wiki & 4.77 \\
+Llama-2-13b-wiki & 4.53 \\
+Llama-2-13b & 3.43 \\
+Llama-2-13b-eli5-cleaned & 3.27 \\
+Llama-2-13b-eli5 & 3.17 \\
+\hline
 \end{tabular}
-\end{center}
-
-Next let's look at the readability scores of each model on the single prompt:
-
-\begin{center}
-\begin{tabular}{c|c|c}
-    \hline
-    \textbf{Model} & \textbf{FRE}& \textbf{FKG} \\
-    \hline
-    Llama-2-7b-chat-hf &  42.21 & 12.50 \\ 
-    Llama-2-7b-ELI5-wiki-simple-merge & 60.55 & 9.60  \\
-    Llama-2-7b-ELI5-wiki &  53.41 &  10.20 \\
-    Llama-2-7b-wiki &  91.41 & 3.90 \\
-    Llama-2-7b-ELI5 &  63.19 & 8.50 \\
-    Llama-2-7b-wiki-simple-merge &  96.48& 2.00  \\
-    Llama-2-7b-ELI5-simple-merge & 78.65 & 4.70  \\
-    Llama-2-7b-hf & 29.86 &13.10 \\
-    \hline
-\end{tabular}
-\end{center}
+\caption{GPT-4 judgements at 7B and 13B}
+\end{table}
 
 
+
+
+
+
+
+%\subsubsection{MT(S)-Bench}
+%
+%In this section we will investigate how well our models perform on a new MT-bench like dataset.
+%The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
+%There are two types of completion tasks, single-turn and multi-turn.
+%For a single-turn problem, the model is given a prompt and asked to complete it.
+%For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
+%Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
+%
+%\begin{center}
+%\begin{tabular}{c|c|c}
+%    \hline
+%    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
+%    \hline
+%    Llama-2-7b-chat &  9.40 & 8.80\\ 
+%    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
+%    Llama-2-7b-ELI5-wiki &  5.975000 &  2.966667 \\
+%    Llama-2-7b-wiki &  5.108333 & 1.616667  \\
+%    Llama-2-7b-ELI5 &  4.116667 & 1.733333  \\
+%    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
+%    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
+%    Llama-2-7b & 1.066667 &1.000000 \\
+%    \hline
+%\end{tabular}
+%\end{center}
+%
+%Next let's look at the readability scores of each model on the single prompt:
+%
+%\begin{center}
+%\begin{tabular}{c|c|c}
+%    \hline
+%    \textbf{Model} & \textbf{FRE}& \textbf{FKG} \\
+%    \hline
+%    Llama-2-7b-chat &  42.21 & 12.50 \\ 
+%    Llama-2-7b-ELI5-wiki-simple-merge & 60.55 & 9.60  \\
+%    Llama-2-7b-ELI5-wiki &  53.41 &  10.20 \\
+%    Llama-2-7b-wiki &  91.41 & 3.90 \\
+%    Llama-2-7b-ELI5 &  63.19 & 8.50 \\
+%    Llama-2-7b-wiki-simple-merge &  96.48& 2.00  \\
+%    Llama-2-7b-ELI5-simple-merge & 78.65 & 4.70  \\
+%    Llama-2-7b & 29.86 &13.10 \\
+%    \hline
+%\end{tabular}
+%\end{center}
+%
+%
 \bibliographystyle{utphys}
 \bibliography{refs}
 
