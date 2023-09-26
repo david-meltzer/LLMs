@@ -381,9 +381,9 @@ Llama-2-13b-ELI5-wiki&   59.43             &  59.98               & 82.43       
 \label{table:hfleaderboard}
 \end{table}
 
-In table \ref{table:hfleaderboard} Llama-2-7b is the base 7 billion model and Llama-2-7b-chat is the Llama-2 model which has undergone RLHF.
-The remaining models are fine-tuned versions of the base-model. 
-Specifically, they are trained using SFT and QLORA on the ELI5 SFT dataset, the Simple Wikipedia Instruct dataset, or their combination. The second half of the table is the same, except for the 13B parameter model.
+In Table \ref{table:hfleaderboard}, Llama-2-7b is the base 7 billion model and Llama-2-7b-chat is Meta's Llama-2 model which has undergone RLHF.
+The remaining models are our fine-tuned versions of the base-model. 
+Specifically, they are trained using SFT and QLoRA on the ELI5 SFT dataset, the Simple Wikipedia Instruct dataset, or their combination. The second half of the table is the same, except for the 13B parameter model.
 For the 13B parameter models we submitted the adapter and base models separately, so we believe they are merged using the simple merge procedure.
 In addition, we used the ungated Llama-2-7b-hf model from NousResearch as the base model since the Meta-Llama-2-7b is gated and cannot be used as a base model.
 We have submitted the merge 13B parameter models using the careful merge and will update the table once results become available.
@@ -397,25 +397,24 @@ Once we go up to 13B parameters we see that the Llama-2 model trained on the ELI
 It is surprising that the model trained on just ELI5 model performs the best, and this result is driven primarily by its improved performance on the TruthfulQA dataset. 
 On the other datasets it barely improves over the model trained on the combined ELI5 and Simple Wikipedia dataset.
 We are not sure what the cause of this effect is, somehow training the model more on Reddit data makes the model more honest!
-This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate and/or after averaging over initializations the difference would go away or the model trained on the combined dataset would perform better.
+This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate the model trained on the combined dataset ELI5+Simple Wikipedia would perform better.
 
 
 
 \subsubsection{ROUGE and BERTScore}
-In this section we will investigate how supervised fine-tuning effects the models ROUGE and BERTScores.
+In this section we will investigate how supervised fine-tuning affects the models ROUGE and BERTScores.
 ROUGE is a well-known automated benchmark that measures n-gam overlap between generated text and the reference text.
 Since it just looks at n-gram overlaps, and does not take into account semantic content, ROUGE is effectively measuring to what extent the trained model is adopting the vocabulary of the reference text.
-One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in some high-dimensional vector space and then measures the cosine-similarity between the two vectors.
+One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in a high-dimensional, dense vector space and then measures the cosine-similarity between the two vectors.
 Of course, this also means that BERTScore is more computationally intensive to compute.
 
 In this section we will only perform inference on a small subset (100 QA pairs) of the validation set, for each validation set we randomly sample 100 question and generate the answers.
-
 In the tables below we present the ROUGE and BERTScore metrics for the Llama-2 base model, as well as our fine-tuned models, on the (small) validation sets for our three datasets: ELI5, Simple Wikipedia, and combined dataset.
 We include the original Llama-2 model as a baseline to measure how much fine-tuning changes the Rouge and BERTScores.
 In addition, we also include ``off-diagonal" elements, where we train a model on one dataset and measure its ROUGE and BERTScores on the validation split of a different dataset.
 For example, we include cases where we train the model on the ELI5 SFT dataset and then evaluate it on the validation split of the Simple Wikipedia QA dataset.
-We included these results to serve as additional baselines to see to what extend fine-tuning on \textit{any} QA dataset changes the evaluation metrics.
-In all cases, the model produces at most 256 new tokens.
+We included these results to serve as additional baselines to see to what extent fine-tuning on \textit{any} QA dataset changes the evaluation metrics.
+In all cases, the model produces at most 512 new tokens.
 
 \begin{table}[htbp]
 \centering
