@@ -356,13 +356,13 @@ Before presenting the results, it may be useful at this point to summarize our n
 \item Llama-2-7b-ELI5: Llama-2 model fine-tuned on the ELI5 dataset. For these models we did not remove posts that end in ``edits".
 \item Llama-2-7b-Wiki: Llama-2 model fine-tuned on the Simple Wikipedia QA dataset.
 \item Llama-2-7b-ELI5-Wiki: Llama-2 model fine-tuned on the combined ELI5 and Simple Wikipedia dataset. Answers in the ELI5 dataset that include ``edits" have not been removed.
-\item Llama-2-7b-ELI5-cleaned and Llama-2-7b-ELI5-cleaned-Wiki: Same as above, but answers in ELI5 with ``edits" have been removed. 
+\item Llama-2-7b-ELI5-Cleaned and Llama-2-7b-ELI5-Cleaned-Wiki: Same as above, but answers in ELI5 with ``edits" have been removed. 
 \end{itemize}
 We use the same naming conventions for the Llama-2-13B models. 
 We included the two versions of the ELI5 dataset because we were curious to what extent including posts that end in ``edits" help or hurt the models performance on various benchmarks.
 
 At the moment, not all tables include all possible models.
-For example, we have not yet submitted the "ELI5-cleaned" models to the HF leaderboard to avoid spamming it and we still need to measure how well the RLHFed chat models perform on our validation datasets.
+For example, we have not yet submitted the "ELI5-Cleaned" models to the HF leaderboard to avoid spamming it and we still need to measure how well the RLHFed chat models perform on our validation datasets.
 This remains a work in progress and the tables below will be updated once we have new results.
 
 \subsubsection{HuggingFace Leaderboard}
@@ -443,60 +443,65 @@ ELI5 & Llama-2-7b & \textbf{0.298242} & \textbf{0.169967} & \textbf{0.220854} & 
  & Llama-2-7b-ELI5 & 0.291572 & 0.146365 & 0.200459 & 0.208918 \\
  & Llama-2-7b-Wiki & 0.270159 & 0.142462 & 0.189260 & 0.200517 \\
  & Llama-2-7b-ELI5-Wiki & 0.290616 & 0.146193 & 0.198206 & 0.206501 \\
- & Llama-2-7b-ELI5-cleaned & 0.283993 & 0.147441 & 0.196752 & 0.205185 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 0.295221 & 0.150033 & 0.202925 & 0.211811 \\
+ & Llama-2-7b-ELI5-Cleaned & 0.283993 & 0.147441 & 0.196752 & 0.205185 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 0.295221 & 0.150033 & 0.202925 & 0.211811 \\
 \hline
 Wiki & Llama-2-7b & 0.176498 & 0.009671 & 0.076387 & \textbf{0.124844} \\
  & Llama-2-7b-ELI5 & \textbf{0.201359} & \textbf{0.011395} & \textbf{0.081669} & 0.109511 \\
  & Llama-2-7b-Wiki & 0.171231 & 0.008440 & 0.073053 & 0.101656 \\
  & Llama-2-7b-ELI5-Wiki & 0.172416 & 0.008493 & 0.074630 & 0.101207 \\
-  & Llama-2-7b-ELI5-cleaned & 0.187632 & 0.010378 & 0.076244 & 0.101758 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 0.165338 & 0.008570 & 0.073524 & 0.100247 \\
+  & Llama-2-7b-ELI5-Cleaned & 0.187632 & 0.010378 & 0.076244 & 0.101758 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 0.165338 & 0.008570 & 0.073524 & 0.100247 \\
  \hline
 full & Llama-2-7b & 0.174103 & 0.009100 & 0.073723 & \textbf{0.122725} \\
  & Llama-2-7b-ELI5 & \textbf{0.195238} & \textbf{0.012030} & \textbf{0.080949} & 0.108134 \\
  & Llama-2-7b-Wiki & 0.172261 & 0.007845 & 0.072799 & 0.101760 \\
  & Llama-2-7b-ELI5-Wiki & 0.178148 & 0.009197 & 0.075710 & 0.103487 \\
-  & Llama-2-7b-ELI5-cleaned & 0.183474 & 0.010084 & 0.073874 & 0.099860 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 0.171299 & 0.009011 & 0.076227 & 0.102450 \\
+  & Llama-2-7b-ELI5-Cleaned & 0.183474 & 0.010084 & 0.073874 & 0.099860 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 0.171299 & 0.009011 & 0.076227 & 0.102450 \\
 \hline
 \end{tabular}
 \caption{Rouge Scores at 7 billion.}
 \label{tab:rouge_scores_7B}
 \end{table}
 
-\begin{table}[h!]
+\begin{table}[ht]
 \centering
-\begin{tabular}{ccccc}
-\hline
-\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Model}} & \multicolumn{3}{c}{\textbf{BERTScores}} \\
-& & Precision & Recall & F1 \\
-\hline
-ELI5 & Llama-2-7b & \textbf{0.801877} & 0.870131 & 0.833800 \\
- & Llama-2-7b-ELI5 & 0.800753 & 0.874340 & \textbf{0.835400} \\
- & Llama-2-7b-Wiki & 0.796885 & 0.873895 & 0.833161 \\
- & Llama-2-7b-ELI5-Wiki & 0.800286 & 0.874562 & 0.835300 \\
-  & Llama-2-7b-ELI5-cleaned & 0.796125 & 0.874431 & 0.832937 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 0.796381 & \textbf{0.875127} & 0.833397 \\
-\hline
-Wiki & Llama-2-7b & 0.757215 & 0.806786 & 0.780903 \\
- & Llama-2-7b-ELI5 & \textbf{0.767562} & \textbf{0.809001}$^{*}$ & \textbf{0.787453} \\
- & Llama-2-7b-Wiki & 0.761045 & 0.803481 & 0.781521 \\
- & Llama-2-7b-ELI5-Wiki & 0.760068 & 0.803064 & 0.780798 \\
-  & Llama-2-7b-ELI5-cleaned & 0.751758 & 0.809001 & 0.778959 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 0.759401 & 0.802026 & 0.780010 \\
- \hline
-full & Llama-2-7b & 0.762537 & 0.808076 & 0.784422 \\
- & Llama-2-7b-ELI5 & \textbf{0.765416} & 0.809050 & \textbf{0.786301} \\
- & Llama-2-7b-Wiki & 0.764166 & 0.805436 & 0.784094 \\
- & Llama-2-7b-ELI5-Wiki & 0.763022 & 0.805353 & 0.783447 \\
-  & Llama-2-7b-ELI5-cleaned & 0.759690 & \textbf{0.810161} & 0.783819 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 0.763620 & 0.804014 & 0.783156 \\
-\hline
+\begin{tabular}{ccccccc}
+\toprule
+%\multicolumn{2}{c}{} & Precision & Recall & F1 \\
+%\cmidrule(r){3-3} \cmidrule(r){4-4} \cmidrule{5-5}
+Dataset & Model Name & Precision & Recall & F1 \\
+\midrule
+\multirow{6}{*}{eli5} & Llama-2-7b & 0.8019 (0.0417) & 0.8701 (0.0364) & 0.8338 (0.0293) \\
+ & Llama-2-7b-ELI5 & 0.8008 (0.0314) & 0.8743 (0.0333) & 0.8354 (0.0249) \\
+ & Llama-2-7b-Wiki & 0.7969 (0.0306) & 0.8739 (0.0340) & 0.8332 (0.0257) \\
+ & Llama-2-7b-ELI5-Wiki & 0.8003 (0.0320) & 0.8746 (0.0328) & 0.8353 (0.0258) \\
+ & Llama-2-7b-ELI5-Cleaned & 0.7961 (0.0330) & 0.8744 (0.0332) & 0.8329 (0.0262) \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 0.7964 (0.0344) & 0.8751 (0.0336) & 0.8334 (0.0275) \\
+\midrule
+\multirow{6}{*}{Wiki} & Llama-2-7b & 0.7572 (0.0285) & 0.8068 (0.0172) & 0.7809 (0.0185) \\
+ & Llama-2-7b-ELI5 & 0.7676 (0.0252) & 0.8090 (0.0132) & 0.7875 (0.0150) \\
+ & Llama-2-7b-Wiki & 0.7610 (0.0170) & 0.8035 (0.0137) & 0.7815 (0.0107) \\
+ & Llama-2-7b-ELI5-Wiki & 0.7601 (0.0184) & 0.8031 (0.0126) & 0.7808 (0.0112) \\
+ & Llama-2-7b-ELI5-Cleaned & 0.7518 (0.0295) & 0.8090 (0.0137) & 0.7790 (0.0172) \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 0.7594 (0.0155) & 0.8020 (0.0142) & 0.7800 (0.0114) \\
+ \midrule
+\multirow{6}{*}{full} & Llama-2-7b & 0.7625 (0.0229) & 0.8081 (0.0164) & 0.7844 (0.0152) \\
+ & Llama-2-7b-ELI5 & 0.7654 (0.0286) & 0.8091 (0.0145) & 0.7863 (0.0176) \\
+ & Llama-2-7b-Wiki & 0.7642 (0.0181) & 0.8054 (0.0150) & 0.7841 (0.0124) \\
+ & Llama-2-7b-ELI5-Wiki & 0.7630 (0.0175) & 0.8054 (0.0146) & 0.7834 (0.0115) \\
+  & Llama-2-7b-ELI5-Cleaned & 0.7597 (0.0249) & 0.8102 (0.0142) & 0.7838 (0.0145) \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 0.7636 (0.0169) & 0.8040 (0.0152) & 0.7832 (0.0123) \\
+\bottomrule
 \end{tabular}
-\caption{BERTScore Precision, Recall, and F1 Scores at 7 Billion.}
+\caption{BERTScore precision, recall, and F1 at 7B. The values in parentheses are the standard deviations.}
 \label{tab:bertscores_7b}
 \end{table}
+
+%\caption{BERTScore precision, recall, and F1 at 7B. The values in parentheses are the standard deviations.}
+%\label{tab:bertscores_7b}
+
 First we will look at the ROUGE and BERTScore for the 7 billion parameter models.
 In Table \ref{tab:rouge_scores_7B} the first thing we notice is that the ROUGE scores do not align at all with our na\"ive expectations.
 On the ELI5 SFT dataset the base Llama-2-7b model performs the best while on the Simple Wikipedia dataset the base model and model fine-tuned on ELI5 performs the best!
@@ -526,25 +531,25 @@ There is also a good chance some of the questions which appear in our validation
 Dataset & Model & FRE & FKG \\
 \hline
 \multirow{6}{*}{ELI5} & Llama-2-7b & 52.6770 & 10.799 \\
- & Llama-7b-ELI5 & 65.0010 & 8.509 \\
- & Llama-7b-Wiki & 44.7725 & 13.777 \\
- & Llama-7b-ELI5-Wiki & 61.9205 & 9.237 \\
-  & Llama-2-7b-ELI5-cleaned & 55.2385 & 11.015 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 61.0496 & 9.635 \\
+ & Llama-2-7b-ELI5 & 65.0010 & 8.509 \\
+ & Llama-2-7b-Wiki & 44.7725 & 13.777 \\
+ & Llama-2-7b-ELI5-Wiki & 61.9205 & 9.237 \\
+  & Llama-2-7b-ELI5-Cleaned & 55.2385 & 11.015 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 61.0496 & 9.635 \\
 \hline
 \multirow{6}{*}{Wiki} & Llama-2-7b & 51.4365 & 11.013 \\
- & Llama-7b-ELI5 & 69.1257 & 7.606 \\
- & Llama-7b-Wiki & 55.8206 & 10.695 \\
- & Llama-7b-ELI5-Wiki & 57.5070 & 9.982 \\
-  & Llama-2-7b-ELI5-cleaned & 60.3884 & 10.037 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 58.3621 & 10.148 \\
+ & Llama-2-7b-ELI5 & 69.1257 & 7.606 \\
+ & Llama-2-7b-Wiki & 55.8206 & 10.695 \\
+ & Llama-2-7b-ELI5-Wiki & 57.5070 & 9.982 \\
+  & Llama-2-7b-ELI5-Cleaned & 60.3884 & 10.037 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 58.3621 & 10.148 \\
 \hline
 \multirow{6}{*}{full} & Llama-2-7b & 48.9020 & 11.636 \\
- & Llama-7b-ELI5 & 68.6513 & 7.855 \\
- & Llama-7b-Wiki & 55.5700 & 10.681 \\
- & Llama-7b-ELI5-Wiki & 56.8602 & 10.314 \\
-  & Llama-2-7b-ELI5-cleaned & 54.0539 & 11.270 \\
- & Llama-2-7b-ELI5-cleaned-Wiki & 57.9690 & 10.054 \\
+ & Llama-2-7b-ELI5 & 68.6513 & 7.855 \\
+ & Llama-2-7b-Wiki & 55.5700 & 10.681 \\
+ & Llama-2-7b-ELI5-Wiki & 56.8602 & 10.314 \\
+  & Llama-2-7b-ELI5-Cleaned & 54.0539 & 11.270 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 57.9690 & 10.054 \\
 \hline
 \end{tabular}
 \caption{FRE and FKG Scores at 7B.}
@@ -580,58 +585,57 @@ ELI5 & Llama-2-13b & \textbf{0.307036} & \textbf{0.178356} & \textbf{0.231862} &
  & Llama-2-13b-ELI5 & 0.297083 & 0.152397 & 0.203960 & 0.211767 \\
  & Llama-2-13b-Wiki & 0.276979 & 0.146025 & 0.192577 & 0.207555 \\
   & Llama-2-13b-ELI5-Wiki & 0.293318 & 0.150636 & 0.202581 & 0.211361 \\
- & Llama-2-13b-ELI5-cleaned & 0.296337 & 0.154060 & 0.206790 & 0.216839 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 0.292577 & 0.150114 & 0.203237 & 0.213226 \\
+ & Llama-2-13b-ELI5-Cleaned & 0.296337 & 0.154060 & 0.206790 & 0.216839 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 0.292577 & 0.150114 & 0.203237 & 0.213226 \\
  \midrule
 Wiki & Llama-2-13b & 0.172371 & 0.008867 & 0.080224 & \textbf{0.131003} \\
  & Llama-2-13b-ELI5 & \textbf{0.199945} & \textbf{0.012095} & 0.081180 & 0.107829 \\
  & Llama-2-13b-Wiki & 0.160476 & 0.008063 & 0.071458 & 0.097539 \\
   & Llama-2-13b-ELI5-Wiki & 0.170214 & 0.008031 & 0.076448 & 0.102741 \\
- & Llama-2-13b-ELI5-cleaned & 0.194477 & 0.011931 & \textbf{0.083820} & 0.112514 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 0.166615 & 0.008272 & 0.076125 & 0.102790 \\
+ & Llama-2-13b-ELI5-Cleaned & 0.194477 & 0.011931 & \textbf{0.083820} & 0.112514 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 0.166615 & 0.008272 & 0.076125 & 0.102790 \\
 \midrule
 full & Llama-2-13b & 0.179198 & 0.010034 & \textbf{0.080540} & \textbf{0.136330} \\
  & Llama-2-13b-ELI5 & 0.192517 & 0.010882 & 0.079189 & 0.106259 \\
  & Llama-2-13b-Wiki & 0.169410 & 0.008547 & 0.073242 & 0.103058 \\
   & Llama-2-13b-ELI5-Wiki & 0.177194 & 0.009303 & 0.077117 & 0.106490 \\
- & Llama-2-13b-ELI5-cleaned & \textbf{0.194476} & \textbf{0.011373} & 0.079118 & 0.109070 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 0.174734 & 0.009346 & 0.076203 & 0.103274 \\
+ & Llama-2-13b-ELI5-Cleaned & \textbf{0.194476} & \textbf{0.011373} & 0.079118 & 0.109070 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 0.174734 & 0.009346 & 0.076203 & 0.103274 \\
 \bottomrule
 \end{tabular}
 \caption{ROUGE Scores at 13B}
 \label{tab:rouge_scores_13B}
 \end{table}
 
-\begin{table}[h!]
+
+\begin{table}
 \centering
-\caption{Precision, Recall, and F1 Scores}
-\label{tab:scores}
-\begin{tabular}{ccccc}
-\toprule
-\multirow{2}{*}{Dataset} & \multirow{2}{*}{Model} & \multicolumn{3}{c}{Scores} \\
-& & Precision & Recall & F1 \\
-\midrule
-ELI5 & Llama-2-13b & \textbf{0.809857} & 0.867220 & \textbf{0.836836} \\
- & Llama-2-13b-ELI5 & 0.798846 & 0.875494 & 0.834867 \\
- & Llama-2-13b-Wiki & 0.798620 & 0.873480 & 0.833842 \\
-  & Llama-2-13b-ELI5-Wiki & 0.798668 & 0.874713 & 0.834404 \\
- & Llama-2-13b-ELI5-cleaned & 0.797193 & 0.874779 & 0.833683 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 0.801264 & \textbf{0.875635} & 0.836282 \\
- \midrule
-Wiki & Llama-2-13b & \textbf{0.767963} & 0.806237 & \textbf{0.786290} \\
- & Llama-2-13b-ELI5 & 0.765266 & 0.809021 & 0.786184 \\
- & Llama-2-13b-Wiki & 0.758040 & 0.802729 & 0.779571 \\
-  & Llama-2-13b-ELI5-Wiki & 0.759304 & 0.802938 & 0.780317 \\
- & Llama-2-13b-ELI5-cleaned & 0.761583 & \textbf{0.809147} & 0.784166 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 0.757777 & 0.801432 & 0.778813 \\
-\midrule
-full & Llama-2-13b & \textbf{0.770812} & 0.807195 & \textbf{0.788337} \\
- & Llama-2-13b-ELI5 & 0.760788 & \textbf{0.809554} & 0.784043 \\
- & Llama-2-13b-Wiki & 0.762699 & 0.805210 & 0.783167 \\
-  & Llama-2-13b-ELI5-Wiki & 0.763758 & 0.804731 & 0.783494 \\
- & Llama-2-13b-ELI5-cleaned & 0.759319 & 0.809498 & 0.783123 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 0.763689 & 0.805197 & 0.783752 \\
-\bottomrule
+\begin{tabular}{ccccccc}
+\hline
+Dataset & Model Name & Precision & Recall & F1 \\
+
+\hline
+\multirow{6}{*}{eli5} & Llama-2-13b & 0.8099 (0.0432) & 0.8672 (0.0364) & 0.8368 (0.0313) \\
+ & Llama-2-13b-eli5 & 0.7988 (0.0328) & 0.8755 (0.0338) & 0.8349 (0.0257) \\
+ & Llama-2-13b-Wiki & 0.7986 (0.0325) & 0.8735 (0.0345) & 0.8338 (0.0259) \\
+  & Llama-2-13b-eli5-Wiki & 0.7987 (0.0330) & 0.8747 (0.0340) & 0.8344 (0.0257) \\
+ & Llama-2-13b-eli5-Cleaned & 0.7972 (0.0344) & 0.8748 (0.0342) & 0.8337 (0.0279) \\
+ & Llama-2-13b-eli5-Cleaned-Wiki & 0.8013 (0.0335) & 0.8756 (0.0341) & 0.8363 (0.0269) \\
+\hline
+\multirow{6}{*}{Wiki} & Llama-2-13b & 0.7680 (0.0300) & 0.8062 (0.0166) & 0.7863 (0.0185) \\
+ & Llama-2-13b-eli5 & 0.7653 (0.0285) & 0.8090 (0.0133) & 0.7862 (0.0166) \\
+ & Llama-2-13b-Wiki & 0.7580 (0.0174) & 0.8027 (0.0139) & 0.7796 (0.0109) \\
+  & Llama-2-13b-eli5-Wiki & 0.7593 (0.0181) & 0.8029 (0.0137) & 0.7803 (0.0107) \\
+ & Llama-2-13b-eli5-Cleaned & 0.7616 (0.0355) & 0.8091 (0.0138) & 0.7842 (0.0210) \\
+ & Llama-2-13b-eli5-Cleaned-Wiki & 0.7578 (0.0189) & 0.8014 (0.0134) & 0.7788 (0.0119) \\
+ \hline
+\multirow{6}{*}{full} & Llama-2-13b & 0.7708 (0.0245) & 0.8072 (0.0165) & 0.7883 (0.0159) \\
+ & Llama-2-13b-eli5 & 0.7608 (0.0296) & 0.8096 (0.0147) & 0.7840 (0.0177) \\
+ & Llama-2-13b-Wiki & 0.7627 (0.0189) & 0.8052 (0.0154) & 0.7832 (0.0118) \\
+  & Llama-2-13b-eli5-Wiki & 0.7638 (0.0180) & 0.8047 (0.0156) & 0.7835 (0.0111) \\
+ & Llama-2-13b-eli5-Cleaned & 0.7593 (0.0353) & 0.8095 (0.0146) & 0.7831 (0.0211) \\
+ & Llama-2-13b-eli5-Cleaned-Wiki & 0.7637 (0.0152) & 0.8052 (0.0148) & 0.7838 (0.0108) \\
+\hline
 \end{tabular}
 \caption{BERTScores at 13B}
 \label{tab:bertscores_13B}
@@ -655,23 +659,23 @@ Dataset & Model Name & FRE & FKG \\
 ELI5 & Llama-2-13b & 55.9093 & 9.932 \\
  & Llama-2-13b-ELI5 & 55.9616 & 10.142 \\
  & Llama-2-13b-Wiki & 43.5825 & 13.763 \\
- & Llama-2-13b-ELI5-cleaned & 62.4666 & 8.907 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 61.6679 & 9.298 \\
- & Llama-2-13b-ELI5-Wiki & 64.5636 & 8.433 \\
+  & Llama-2-13b-ELI5-Wiki & 64.5636 & 8.433 \\
+ & Llama-2-13b-ELI5-Cleaned & 62.4666 & 8.907 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 61.6679 & 9.298 \\
 \midrule
 Wiki & Llama-2-13b & 55.7939 & 9.999 \\
  & Llama-2-13b-ELI5 & 67.1027 & 7.994 \\
  & Llama-2-13b-Wiki & 51.8992 & 11.595 \\
- & Llama-2-13b-ELI5-cleaned & 67.8129 & 7.885 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 57.7417 & 9.913 \\
- & Llama-2-13b-ELI5-Wiki & 60.8368 & 9.324 \\
+  & Llama-2-13b-ELI5-Wiki & 60.8368 & 9.324 \\
+ & Llama-2-13b-ELI5-Cleaned & 67.8129 & 7.885 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 57.7417 & 9.913 \\
  \midrule
 Full & Llama-2-13b & 55.5964 & 10.028 \\
  & Llama-2-13b-ELI5 & 63.1428 & 8.895 \\
  & Llama-2-13b-Wiki & 52.3647 & 11.296 \\
- & Llama-2-13b-ELI5-cleaned & 61.2361 & 9.339 \\
- & Llama-2-13b-ELI5-cleaned-Wiki & 56.9492 & 10.218 \\
- & Llama-2-13b-ELI5-Wiki & 59.5139 & 9.501 \\
+  & Llama-2-13b-ELI5-Wiki & 59.5139 & 9.501 \\
+ & Llama-2-13b-ELI5-Cleaned & 61.2361 & 9.339 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 56.9492 & 10.218 \\
 \bottomrule
 \end{tabular}
 \caption{FRE and FKG Scores at 13B}
@@ -705,9 +709,9 @@ $[$Instruction$]$\newline Please act as an impartial judge and
     [The Start of Assistant's Answer]\newline{\{answer\}}\newline[The End of Assistant's
     Answer]
 \end{displayquote}
-Here the text in \{question\} and \{answer\} correspond to the question in one of our datasets and the model generated answer, respectively.
-Given that GPT-4 is not cheap, we decided to only evaluate our models on the small validation set containing 100 questions from both ELI5 and Simple Wikipedia. The   
 
+Here the text in \{question\} and \{answer\} correspond to the question in one of our datasets and the model generated answer, respectively.
+Given that GPT-4 is not cheap, we decided to only evaluate our models on the small validation set containing 100 questions from both ELI5 and Simple Wikipedia.
 
 \begin{table}[h]
 \centering
@@ -715,23 +719,30 @@ Given that GPT-4 is not cheap, we decided to only evaluate our models on the sma
 \hline
 Model Name & Score \\
 \hline
-Llama-2-7b-ELI5-cleaned-Wiki & 3.89 \\
+Llama-2-7b-ELI5-Cleaned-Wiki & 3.89 \\
 Llama-2-7b-Wiki & 3.58 \\
 Llama-2-7b-ELI5-Wiki & 3.45 \\
 Llama-2-7b & 2.92 \\
-Llama-2-7b-ELI5-cleaned & 2.58 \\
-Llama-7b-ELI5 & 2.43 \\
+Llama-2-7b-ELI5-Cleaned & 2.58 \\
+Llama-2-7b-ELI5 & 2.43 \\
 \hline\hline 
 Llama-2-13b-ELI5-Wiki & 4.91 \\
-Llama-2-13b-ELI5-cleaned-Wiki & 4.77 \\
+Llama-2-13b-ELI5-Cleaned-Wiki & 4.77 \\
 Llama-2-13b-Wiki & 4.53 \\
 Llama-2-13b & 3.43 \\
-Llama-2-13b-ELI5-cleaned & 3.27 \\
+Llama-2-13b-ELI5-Cleaned & 3.27 \\
 Llama-2-13b-ELI5 & 3.17 \\
 \hline
 \end{tabular}
 \caption{GPT-4 judgements at 7B and 13B}
+\label{tab:GPT4-judgements}
 \end{table}
+  
+In Table \ref{tab:GPT4-judgements} we present the average scores assigned by GPT-4 to each model, ranked for highest to lowest.
+We also separated the results by the size of the model.
+At both 7B and 13B, the three best performing models are the ones trained on ELI5 + Simple Wikipedia (using our original ELI5 SFT dataset or the cleaned one) and the one trained on just Simple Wikipedia.
+By contrast, the model trained on just ELI5 performs worse than the base model at both 7B and 13B.
+We think these results indicate that training on the more encyclopedic text of Simple Wikipedia helps the model generate more cogent answers.
 
 
 
