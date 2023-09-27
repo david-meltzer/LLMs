@@ -423,17 +423,14 @@ Since it just looks at n-gram overlaps, and does not take into account semantic 
 One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in a high-dimensional, dense vector space and then measures the cosine-similarity between the two vectors.
 Of course, this also means that BERTScore is more computationally intensive to compute.
 
-In this section we will only perform inference on a small subset (100 QA pairs) of the validation set, for each validation set we randomly sample 100 question and generate the answers.
+In this section we will only perform inference on a small subset (100 QA pairs) of the validation set. 
+For each validation set we randomly sample 100 questions and generate the answers.
 In the tables below we present the ROUGE and BERTScore metrics for the Llama-2 base model, as well as our fine-tuned models, on the (small) validation sets for our three datasets: ELI5, Simple Wikipedia, and combined dataset.
 We include the original Llama-2 model as a baseline to measure how much fine-tuning changes the Rouge and BERTScores.
 In addition, we also include ``off-diagonal" elements, where we train a model on one dataset and measure its ROUGE and BERTScores on the validation split of a different dataset.
 For example, we include cases where we train the model on the ELI5 SFT dataset and then evaluate it on the validation split of the Simple Wikipedia QA dataset.
 We included these results to serve as additional baselines to see to what extent fine-tuning on \textit{any} QA dataset changes the evaluation metrics.
 In all cases, we limit the model to produce at most 512 new tokens.
-\\[10pt]
-
-
-
 \begin{table}[ht]
 \centering
 \begin{tabular}{lcccccccc}
@@ -520,11 +517,11 @@ We do again note that all models achieve higher scores on the ELI5 validation sp
 Overall, it's not clear how to interpret these results.
 One reasonable conjecture is that how well a model performs, according to the ROUGE and BERTScores, may be determined more by the pretraining process and less by how the model is fine-tuned.
 There is also a good chance some of the questions which appear in our validation sets appeared in the training set of the base model and our fine-tuned models may be forgetting the answers.
-%It's difficult to interpret or make sense of these results, somehow the base Llama-2 model often outperforms the fine-tuned models and the model trained on just the ELI5 dataset often performs very well on the Simple Wikipedia validation set!
-%It is probably best to take these numbers with a grain of salt. The BERTScore metrics tend to differ by very small amounts, e.g. the difference in F1 scores between the base model and the model trained on ELI5 for the Simple Wikipedia validation set differ by just 0.001.
-%In addition, we of course do not know on what data the original Llama-2 model was trained and if there is data leakage.
 
-%Finally, let's look at the Flesch readability ease (FRE) and Flesch-Kincaid grade (FKG) metrics. 
+To better interpret these results, we have also included figures for the distribution of the F1 BERTscore and the RougeLSum metric for each dataset.
+\begin{figure}
+\includegraphics[scale=.5]{}
+\end{figure}
 
 \begin{table}[h]
 \centering
