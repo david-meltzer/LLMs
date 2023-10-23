@@ -8,6 +8,7 @@ __pycache__/
 
 /**/artifacts
 /**/wandb
+/datasets/data
 
 **/.DS_Store
 .DS_Store
@@ -130,6 +131,7 @@ celerybeat.pid
 .venv
 env/
 venv/
+llm-env/
 ENV/
 env.bak/
 venv.bak/
