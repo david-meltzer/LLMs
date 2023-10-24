@@ -9,7 +9,7 @@
 \usepackage{hhline}
 \usepackage{amsmath}
 %SetFonts
-
+\usepackage{csquotes}
 \usepackage{multirow}
 \usepackage{booktabs}
 
@@ -156,14 +156,14 @@ Low quality answers, e.g. ones that do not answer the original question or do no
 The quality of posts on r/AskScience is also high and users generally receive clear answers to fairly technical questions, although the moderation appears to be less strict than on r/AskHistorians.
 We will use the ELI5 dataset to train a question/answer model by using the title and body of the post as the question and highly-voted comments as the answers.
 
-The original ELI5 dataset was created by researchers at Facebook \cite{fan-etal-2019-eli5} and the original ELI5 dataset can be found \href{https://huggingface.co/datasets/eli5}{here}.
+The original ELI5 dataset was created by researchers at Facebook \cite{fan-etal-2019-ELI5} and the original ELI5 dataset can be found \href{https://huggingface.co/datasets/ELI5}{here}.
 However, one potential issue with this dataset is that there is a large amount of data leakage between the train/validation/test splits \cite{krishna2021hurdles,mahapatra2021new}.
 For this reason, we will use a cleaned version of the ELI5 dataset which was constructed by the second group and can be found \href{https://huggingface.co/datasets/vblagoje/lfqa}{here}.
 This dataset will also require some cleaning due to data leakage, but overall its cleaner than the previous version of the ELI5 dataset.
 
 
 \subsubsection*{Wikipedia}
-\href{https://simple.wikipedia.org/wiki/Main_Page}{Simple Wikipedia} is a version of Wikipedia where users are encouraged to write articles using basic English.
+\href{https://simple.Wikipedia.org/Wiki/Main_Page}{Simple Wikipedia} is a version of Wikipedia where users are encouraged to write articles using basic English.
 On the Simple Wikipedia homepage they write: ``The Simple English Wikipedia is for everyone, such as children and adults who are learning English."
 They also encourage users to write shorter sentences, while not necessarily requiring that the articles also be short.
 In particular, users are told to write articles using simple words and grammar, but to not necessarily only use ``basic information".
@@ -182,7 +182,7 @@ Here the text in \{answer\} is the first few paragraphs of the Simple Wikipedia 
 
 This is a very general and powerful idea which allows us to use large LLMs to generate whole new, synthetic datasets from existing text.
 A nice feature of this method is that only the question is AI-generated, the answer itself is still human-written text which has been repurposed for a new task.
-A dataset of Simple Wikipedia articles is hosted on HuggingFace \href{https://huggingface.co/datasets/wikipedia/viewer/20220301.simple/train}{here} which we will use to generate the questions.
+A dataset of Simple Wikipedia articles is hosted on HuggingFace \href{https://huggingface.co/datasets/Wikipedia/viewer/20220301.simple/train}{here} which we will use to generate the questions.
 
 \subsection{Creating and Filtering the Datasets}
 RLHF involves three separate training steps, supervised fine-tuning, reward modeling, and reinforcement learning, so we therefore need three separate datasets.
@@ -206,7 +206,7 @@ Instead, we intend to use retrieval augmented generation (RAG) so our LLMs can p
 \item We removed any answers which are less than 20 words long, since these tend to be uninformative. 
 \item We removed any posts that did not fit the question answer paradigm, e.g. if the title/post did not actually contain a question.
 There are many posts on these subreddits of these forms, e.g. r/AskScience has \href{https://www.reddit.com/r/askscience/comments/10wyuf9/ask_anything_wednesday_engineering_mathematics/}{``Ask Anything Wednesday"} posts where users ask questions and receive answers in the comments and r/AskHistorians has had meta posts on the state of the subreddit, see e.g. this \href{https://www.reddit.com/r/AskHistorians/comments/yfs7uh/askhistorians_has_hit_15_million_subscribers_to/}{post} celebrating the subreddit hitting 1.5 million subscribers. We manually went through the ELI5 dataset to identify and remove such posts.
-\item We removed answers which did not meet our simplicity criteria according to the \href{https://en.wikipedia.org/wiki/Flesch\%E2\%80\%93Kincaid_readability_tests}{Flesch-Kincaid readability metrics}. Specifically, we measured the simplicity of an answer by computing its Flesch reading ease (FRE) and Flesch-Kincaid grade level (FKG) scores. We only kept posts with FRE$\geq 60$, which corresponds to ``simple English" and FKG$< 9$, which corresponds to text which should be understandable by middle-school students and younger (the FKG score approximately corresponds to US school grade level). 
+\item We removed answers which did not meet our simplicity criteria according to the \href{https://en.Wikipedia.org/Wiki/Flesch\%E2\%80\%93Kincaid_readability_tests}{Flesch-Kincaid readability metrics}. Specifically, we measured the simplicity of an answer by computing its Flesch reading ease (FRE) and Flesch-Kincaid grade level (FKG) scores. We only kept posts with FRE$\geq 60$, which corresponds to ``simple English" and FKG$< 9$, which corresponds to text which should be understandable by middle-school students and younger (the FKG score approximately corresponds to US school grade level). 
 \end{enumerate}
 
 There is of course freedom to change the above data cleaning procedure and it would be interesting to explore alternatives. 
@@ -349,12 +349,29 @@ For this reason, unless stated explicitly, we will always use the careful merge 
 
 \subsection{Supervised Fine-Tuning}
 In this section we will summarize the results of Llama-2 models fine-tuned using supervised fine-tuning.
+Before presenting the results, it may be useful at this point to summarize our naming conventions for the models:
+\begin{itemize}
+\item Llama-2-7b: The base Llama-2 model which is available on Huggingface.
+\item Llama-2-7b-chat: The Llama-2 model which has undergone RLHF by researchers at Meta.
+\item Llama-2-7b-ELI5: Llama-2 model fine-tuned on the ELI5 dataset. For these models we did not remove posts that end in ``edits".
+\item Llama-2-7b-Wiki: Llama-2 model fine-tuned on the Simple Wikipedia QA dataset.
+\item Llama-2-7b-ELI5-Wiki: Llama-2 model fine-tuned on the combined ELI5 and Simple Wikipedia dataset. Answers in the ELI5 dataset that include ``edits" have not been removed.
+\item Llama-2-7b-ELI5-Cleaned and Llama-2-7b-ELI5-Cleaned-Wiki: Same as above, but answers in ELI5 with ``edits" have been removed. 
+\end{itemize}
+We use the same naming conventions for the Llama-2-13B models. 
+We included the two versions of the ELI5 dataset because we were curious to what extent including posts that end in ``edits" help or hurt the models performance on various benchmarks.
+
+At the moment, not all tables include all possible models.
+For example, we have not yet submitted the "ELI5-Cleaned" models to the HF leaderboard to avoid spamming it and we still need to measure how well the RLHFed chat models perform on our validation datasets.
+This remains a work in progress and the tables below will be updated once we have new results.
 
 \subsubsection{HuggingFace Leaderboard}
 First we'll summarize the results of our fine-tuned models versus the Meta-Llama models on the Huggingface Open LLM leaderboard.
 The leaderboard is a wrapper for the ``Eleuther AI Language Model Evaluation Harness". 
-Specifically, the leaderboard measures the 25-shot performance of LLMs on the arc-challenge dataset, the 10-shot performance on the HellaSwag dataset, the 0-shot performance on TurthfulQA, and the 5-shot performance on MMLU. For arc-challenge and HellaSwag performance is measured using the acc$-$norm metric of EleutherAI, for TruthfulQA they use the mc2 metric, and for MMLU they average the accuracy of the model across tasks in the MMLU dataset.
+Specifically, the leaderboard measures the 25-shot performance of LLMs on the arc-challenge dataset, the 10-shot performance on the HellaSwag dataset, the 0-shot performance on TurthfulQA, and the 5-shot performance on MMLU. 
+For arc-challenge and HellaSwag performance is measured using the acc$-$norm metric of EleutherAI, for TruthfulQA they use the mc2 metric, and for MMLU they average the accuracy of the model across tasks in the MMLU dataset.
 The nice thing about the leaderboard is one can submit either the full model or submit just the adapter layers and give the base model separately.
+However, it is our understanding that if we submit the adapter layers separately then the models are merged using the ``simple-merge" described above.
 \begin{table}
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|c|}
@@ -364,27 +381,27 @@ Model &          Average & Arc & HellaSwag & MMLU & TruthfulQA \\
 Llama-2-7b&                  53.40               &   53.07            & 77.74              &  43.80                &  38.98 \\
 Llama-2-7b-chat  &          \textbf{56.34} &  52.90              & 78.55             &  \textbf{48.32}    &  \textbf{45.57} \\
 Llama-2-7b-ELI5  &           53.92             &  53.41              & 77.90             &  43.56                 & 40.81\\
-Llama-2-7b-wiki &           53.72              &  \textbf{54.35} & 78.06             &  45.35                 & 37.11\\
-Llama-2-7b-ELI5-wiki&    55.46               &  53.75              & \textbf{78.76}&  46.02                   & 43.31\\
+Llama-2-7b-Wiki &           53.72              &  \textbf{54.35} & 78.06             &  45.35                 & 37.11\\
+Llama-2-7b-ELI5-Wiki&    55.46               &  53.75              & \textbf{78.76}&  46.02                   & 43.31\\
 \hhline{|=|=|=|=|=|=|}
 Llama-2-13b &               56.90              &   58.11             & 80.97            &  54.34            & 34.17\\
 Llama-2-13b-chat&        59.93              & 59.04               & 81.94            &  54.64            & \textbf{44.12}\\
 Llama-2-13b-ELI5&          \textbf{60.61} &  \textbf{60.41}  & \textbf{82.58}&  \textbf{55.86}& 43.61\\
-Llama-2-13b-wiki&	        58.12             &  59.04               & 82.33            &  55.36            & 35.75\\
-Llama-2-13b-ELI5-wiki&   59.43             &  59.98               & 82.43            &  55.41            & 39.90 \\
+Llama-2-13b-Wiki&	        58.12             &  59.04               & 82.33            &  55.36            & 35.75\\
+Llama-2-13b-ELI5-Wiki&   59.43             &  59.98               & 82.43            &  55.41            & 39.90 \\
 \hline
 \end{tabular}
 \end{center}
 \caption{Results for Llama-2 models on Huggingface Open LLM Leaderboard}.
 \label{table:hfleaderboard}
 \end{table}
-Here Llama-2-7b is the base 7 billion model and Llama-2-7b-chat is the Llama-2 model which has undergone RLHF.
-The remaining models are fine-tuned versions of the base-model. 
-Specifically, they are trained using SFT and QLORA on the ELI5 SFT dataset, the Simple Wikipedia Instruct dataset, or their combination. The second half of the table is the same, except for the 13B parameter model.
 
-%All that said, to get the above results we quantized and dequantized the 7B model before merging, while for the 13B model we quantized the model to bfloat16 and then merged. 
-%For the 7B model we could perform the quantization and dequantization on a 40GB A100.
-%For the 13B model we directly submitted the adapter layers to the HuggingFace leaderboard and used the ungated Llama-2-7b-hf model from NousResearch (the Meta-Llama model is gated and although it can be downloaded, we were not able to use it as a base model on the leaderboard).
+In Table \ref{table:hfleaderboard}, Llama-2-7b is the base 7 billion model and Llama-2-7b-chat is Meta's Llama-2 model which has undergone RLHF.
+The remaining models are our fine-tuned versions of the base-model. 
+Specifically, they are trained using SFT and QLoRA on the ELI5 SFT dataset, the Simple Wikipedia Instruct dataset, or their combination. The second half of the table is the same, except for the 13B parameter model.
+For the 13B parameter models we submitted the adapter and base models separately, so we believe they are merged using the simple merge procedure.
+In addition, we used the ungated Llama-2-7b model from NousResearch as the base model since the Meta-Llama-2-7b is gated and cannot be used as a base model.
+We have submitted the merge 13B parameter models using the careful merge and will update the table once results become available.
 
 In Table \ref{table:hfleaderboard} we see that of the 7B models, the Meta-Llama-2-7b-chat performs the best on average with the Llama-2 model trained on ELI5 and Simple Wikipedia performing the second best.
 One surprising thing is the chat model actually performs worse than the base model on the Arc-Challenge dataset, and here the model trained on just Simple Wikipedia QA pairs performs the best. 
@@ -395,164 +412,484 @@ Once we go up to 13B parameters we see that the Llama-2 model trained on the ELI
 It is surprising that the model trained on just ELI5 model performs the best, and this result is driven primarily by its improved performance on the TruthfulQA dataset. 
 On the other datasets it barely improves over the model trained on the combined ELI5 and Simple Wikipedia dataset.
 We are not sure what the cause of this effect is, somehow training the model more on Reddit data makes the model more honest!
-This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate and/or after averaging over initializations the difference would go away or the model trained on the combined dataset would perform better.
+This result could also be an artifact of a poor choice of hyperparameters, and perhaps with a different learning rate the model trained on the combined dataset ELI5+Simple Wikipedia would perform better.
 
-\subsubsection{Judging the Validation Set with GPT-4}
 
 
 \subsubsection{ROUGE and BERTScore}
-In this section we will investigate how supervised fine-tuning effects the models ROUGE and BERTScores.
+In this section we will investigate how supervised fine-tuning affects the models ROUGE and BERTScores.
 ROUGE is a well-known automated benchmark that measures n-gam overlap between generated text and the reference text.
 Since it just looks at n-gram overlaps, and does not take into account semantic content, ROUGE is effectively measuring to what extent the trained model is adopting the vocabulary of the reference text.
-One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in some high-dimensional vector space and then measures the cosine-similarity between the two vectors.
+One advantage of BERTScore is it uses pre-trained encoder models, such as BERT or RoBERTa, to encode the generated and reference text in a high-dimensional, dense vector space and then measures the cosine-similarity between the two vectors.
 Of course, this also means that BERTScore is more computationally intensive to compute.
 
-In this section we will only perform inference on a small subset (100 QA pairs) of the validation set, for each validation set we randomly sample 100 question and generate the answers.
-
+In this section we will only perform inference on a small subset (100 QA pairs) of the validation set. 
+For each validation set we randomly sample 100 questions and generate the answers.
 In the tables below we present the ROUGE and BERTScore metrics for the Llama-2 base model, as well as our fine-tuned models, on the (small) validation sets for our three datasets: ELI5, Simple Wikipedia, and combined dataset.
 We include the original Llama-2 model as a baseline to measure how much fine-tuning changes the Rouge and BERTScores.
 In addition, we also include ``off-diagonal" elements, where we train a model on one dataset and measure its ROUGE and BERTScores on the validation split of a different dataset.
 For example, we include cases where we train the model on the ELI5 SFT dataset and then evaluate it on the validation split of the Simple Wikipedia QA dataset.
-We included these results to serve as additional baselines to see to what extend fine-tuning on \textit{any} QA dataset changes the evaluation metrics.
-In all cases, the model produces at most 256 new tokens.
+We included these results to serve as additional baselines to see to what extent fine-tuning on \textit{any} QA dataset changes the evaluation metrics.
+We also include tables comparing the average FRE and FKG scores for each on model on each small validation set.
+In all cases, we limit the model to produce at most 512 new tokens.
 
-\begin{table}[htbp]
+For the  tables, we follow standard notation and use bold numbers to signify the model which performs the best on that validation set.
+However, this is mostly used to guide the eye and these numbers should not be used as the sole guide to determine which model is ``better".
+When there is a tie (to the degree of precision we present) we bold the answer with the smaller standard deviation.
+In many cases, the difference in performance between two models is much smaller than the standard deviation and in many cases all models fall within one standard deviation of each other.
+In order to get a better judge about which model is actually performing the best, we present kernel density estimate (KDE) plots to directly visualize the difference in performance for each model on a fixed dataset. 
+\\[10pt]
+\textbf{7B Models}
+\\[10pt]
+\begin{table}[ht]
+\hspace{-.5in}
+%\centering
+\begin{tabular}{lcccccccc}
+\toprule
+\multicolumn{2}{c}{Dataset} & \multicolumn{1}{c}{Rouge1} & \multicolumn{1}{c}{Rouge2} & \multicolumn{1}{c}{RougeL} & \multicolumn{1}{c}{RougeLSum} \\
+\midrule
+\multirow{6}{*}{ELI5} & Llama-2-7b & \textbf{0.298 (0.116)} & \textbf{0.171 (0.122)} & \textbf{0.221 (0.118)} & \textbf{0.250 (0.115)} \\
+& Llama-2-7b-ELI5 & 0.292 (0.096) & 0.146 (0.085) & 0.200 (0.081) & 0.209 (0.084) \\
+& Llama-2-7b-Wiki & 0.270 (0.098) & 0.143 (0.092) & 0.189 (0.089) & 0.201 (0.091) \\
+& Llama-2-7b-ELI5-Wiki & 0.290 (0.097) & 0.146 (0.083) & 0.198 (0.079) & 0.206 (0.082) \\
+& Llama-2-7b-ELI5-Cleaned & 0.284 (0.098) & 0.148 (0.089) & 0.197 (0.086) & 0.205 (0.088) \\
+& Llama-2-7b-ELI5-Cleaned-Wiki & 0.295 (0.099) & 0.150 (0.083) & 0.203 (0.080) & 0.212 (0.083) \\
+\midrule
+\multirow{6}{*}{Wiki} & Llama-2-7b & 0.207 (0.066) & 0.081 (0.050) & 0.137 (0.056) & 0.163 (0.058) \\
+& Llama-2-7b-ELI5 & 0.193 (0.051) & 0.064 (0.030) & 0.120 (0.031) & 0.132 (0.038) \\
+& Llama-2-7b-Wiki & 0.229 (0.052) & 0.097 (0.033) & 0.153 (0.031) & 0.168 (0.041) \\
+& Llama-2-7b-ELI5-Wiki & 0.238 (0.050) & 0.103 (0.037) & 0.159 (0.035) & 0.174 (0.041) \\
+& Llama-2-7b-ELI5-Cleaned & 0.195 (0.052) & 0.067 (0.031) & 0.120 (0.032) & 0.132 (0.039) \\
+& Llama-2-7b-ELI5-Cleaned-Wiki & \textbf{0.246 (0.057)} & \textbf{0.108 (0.038)} & \textbf{0.165 (0.039)} & \textbf{0.181 (0.049)} \\
+\midrule
+\multirow{6}{*}{full} & Llama-2-7b & 0.221 (0.081) & 0.097 (0.085) & 0.152 (0.081) & 0.176 (0.080) \\
+& Llama-2-7b-ELI5 & 0.218 (0.077) & 0.082 (0.068) & 0.142 (0.064) & 0.151 (0.066) \\
+& Llama-2-7b-Wiki & 0.241 (0.063) & 0.109 (0.062) & 0.165 (0.057) & 0.175 (0.058) \\
+& Llama-2-7b-ELI5-Wiki & 0.250 (0.072) & 0.111 (0.063) & 0.168 (0.059) & 0.177 (0.060) \\
+& Llama-2-7b-ELI5-Cleaned & 0.215 (0.076) & 0.084 (0.070) & 0.138 (0.066) & 0.147 (0.068) \\
+& Llama-2-7b-ELI5-Cleaned-Wiki & \textbf{0.250 (0.070)} & \textbf{0.112 (0.063)} & \textbf{0.169 (0.060)} & \textbf{0.180 (0.061)} \\
+\bottomrule
+\end{tabular}
+\caption{Rouge Scores at 7 billion.}
+\label{tab:rouge_scores_7B}
+\end{table}
+
+\begin{table}[ht]
+\hspace{-.75in}
+%\centering
+\begin{tabular}{lcccccc}
+\toprule
+\multicolumn{2}{c}{Dataset} & \multicolumn{1}{c}{Precision} & \multicolumn{1}{c}{Recall} & \multicolumn{1}{c}{F1} \\
+\midrule
+\multirow{6}{*}{ELI5} & Llama-2-7b & \textbf{0.801877 (0.041669)} & 0.870131 (0.036416) & 0.833800 (0.029312) \\
+& Llama-2-7b-ELI5 & 0.800753 (0.031411) & 0.874340 (0.033276) & \textbf{0.835400 (0.024897)} \\
+& Llama-2-7b-Wiki & 0.796885 (0.030591) & 0.873895 (0.033967) & 0.833161 (0.025661) \\
+& Llama-2-7b-ELI5-Wiki & 0.800286 (0.031993) & 0.874562 (0.032835) & 0.835300 (0.025810) \\
+& Llama-2-7b-ELI5-Cleaned & 0.796125 (0.032983) & 0.874431 (0.033228) & 0.832937 (0.026229) \\
+& Llama-2-7b-ELI5-Cleaned-Wiki & 0.796381 (0.034365) & \textbf{0.875127 (0.033577)} & 0.833397 (0.027465) \\
+\midrule
+\multirow{6}{*}{Wiki} & Llama-2-7b & 0.769545 (0.038940) & 0.842348 (0.029678) & 0.803821 (0.029034) \\
+& Llama-2-7b-ELI5 & 0.775096 (0.024422) & 0.843807 (0.025343) & 0.807686 (0.019836) \\
+& Llama-2-7b-Wiki & 0.793727 (0.021894) & 0.881525 (0.026325) & 0.835074 (0.019327) \\
+& Llama-2-7b-ELI5-Wiki & 0.794967 (0.021917) & 0.882922 (0.024376) & 0.836404 (0.018643) \\
+& Llama-2-7b-ELI5-Cleaned & 0.761646 (0.031678) & 0.848510 (0.026560) & 0.802358 (0.024478) \\
+& Llama-2-7b-ELI5-Cleaned-Wiki & \textbf{0.799032 (0.020367)} & \textbf{0.884777 (0.023089)} & \textbf{0.839490 (0.016528)} \\
+\midrule
+\multirow{6}{*}{full} & Llama-2-7b & 0.778881 (0.035265) & 0.854549 (0.033425) & 0.814540 (0.028644) \\
+& Llama-2-7b-ELI5 & 0.776775 (0.037984) & 0.855862 (0.031126) & 0.813894 (0.029722) \\
+& Llama-2-7b-Wiki & 0.797234 (0.022978) & 0.885740 (0.026650) & 0.838917 (0.020343) \\
+& Llama-2-7b-ELI5-Wiki & 0.796534 (0.022784) & \textbf{0.885833 (0.025359)} & 0.838515 (0.018211) \\
+& Llama-2-7b-ELI5-Cleaned & 0.775235 (0.030981) & 0.864166 (0.029041) & 0.816898 (0.024698) \\
+& Llama-2-7b-ELI5-Cleaned-Wiki & \textbf{0.800189 (0.024002)} & 0.885813 (0.025549) & \textbf{0.840569 (0.019985)} \\
+\bottomrule
+\end{tabular}
+\caption{BERTScore precision, recall, and F1 at 7B. The values in parentheses are the standard deviations.}
+\label{tab:bertscores_7b}
+\end{table}
+%To better interpret these results, we have also included figures for the distribution of the F1 BERTscore and the RougeLSum metric for each dataset, see figure \ref{fig:rouge_bertscore_7B}
+\begin{figure}
+\includegraphics[scale=.5]{./figures/rougelsum_7B_eli5}
+\includegraphics[scale=.5]{./figures/bertscore_F1_7B_eli5}
+\includegraphics[scale=.5]{./figures/rougelsum_7B_wiki}
+\includegraphics[scale=.5]{./figures/bertscore_F1_7B_wiki}
+\includegraphics[scale=.5]{./figures/rougelsum_7B_full}
+\includegraphics[scale=.5]{./figures/bertscore_F1_7B_full}
+\caption{ROUGE and BERTScore metrics for the 7B models.}
+\label{fig:rouge_bertscore_7B}
+\end{figure}
+What can we determine from Tables \ref{tab:rouge_scores_7B} and \ref{tab:bertscores_7b} as well as Figure \ref{fig:rouge_bertscore_7B}? The first thing we can note is that the base Llama-2-7B model consistently achieves the highest ROUGE score on the ELI5 dataset, while the fine-tuned models are clustered around similar values.
+By contrast, the difference in BERTScores among all models is fairly small and the distributions appear almost identical.
+We notice more significant changes for the validation sets constructed from the Simple Wikipedia and combined SFT datasets.
+On Simple Wikipedia, the model trained on the ELI5-Cleaned + Simple Wikipedia dataset performs the best, although the the other models are within one standard deviation.
+From the KDE plots we notice the RougeLSum score for these models is shifted slightly to the right. 
+We notice a more significant improvement when looking at the BERTScores, and in particular see that the model trained on the ELI5-Cleaned + Simple Wikipedia dataset performs noticeably better according to the recall and F1 metrics.
+The same conclusions carry over for the models evaluated on the validation set containing QA pairs from both the ELI5 and Simple Wikipedia datasets: the models trained on the combined datasets exhibit a small improvement according to the ROUGE metrics, and a more significant improvement on the BERTScore metrics.
+All of these results are more clearly visualized using the KDE plots presented in Figure \ref{fig:rouge_bertscore_7B}.
+
+
+%First we will look at the ROUGE and BERTScore for the 7 billion parameter models.
+%In Table \ref{tab:rouge_scores_7B} the first thing we notice is that the ROUGE scores do not align at all with our na\"ive expectations.
+%On the ELI5 SFT dataset the base Llama-2-7b model performs the best while on the Simple Wikipedia dataset the base model and model fine-tuned on ELI5 performs the best!
+%It appears the ELI5 models strong performance on the Simple Wikipedia dataset helps it also perform well on the validation set containing both ELI5 and Simple Wikipedia.
+%It should also be noted that in most cases the difference in ROUGE scores among our fine-tuned models is fairly small.
+%We also note that the base model performs noticeably better according to the ROUGELsum metric for all three datasets.
+%Finally, it appears that the ELI5 dataset is simpler to model and the models can achieve higher ROUGE scores on the ELI5 dataset versus the other two.
+%
+%We notice a similar phenomenon in Table \ref{tab:bertscores_7b} where the model which performs the best is either the base model or a model trained on a different dataset than the one we are evaluating on.
+%The sole exception is that the model trained on the ELI5 SFT dataset does achieve the highest F1 score on the ELI5 validation set, but the improvement over the other models is marginal.
+%According to the BERTScore metrics, the base model does not appear to behave significantly better than our fine-tuned models.
+%We do again note that all models achieve higher scores on the ELI5 validation split in comparison to the other two datasets. 
+%
+%Overall, it's not clear how to interpret these results.
+%One reasonable conjecture is that how well a model performs, according to the ROUGE and BERTScores, may be determined more by the pretraining process and less by how the model is fine-tuned.
+%There is also a good chance some of the questions which appear in our validation sets appeared in the training set of the base model and our fine-tuned models may be forgetting the answers.
+
+\begin{table}
 \centering
 \begin{tabular}{cccccc}
+\hline
+Dataset & Model & FRE & FKG \\
+\hline
+\multirow{6}{*}{ELI5} & Llama-2-7b & 52.6770 & 10.799 \\
+ & Llama-2-7b-ELI5 & 65.0010 & 8.509 \\
+ & Llama-2-7b-Wiki & 44.7725 & 13.777 \\
+ & Llama-2-7b-ELI5-Wiki & 61.9205 & 9.237 \\
+  & Llama-2-7b-ELI5-Cleaned & 55.2385 & 11.015 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 61.0496 & 9.635 \\
+\hline
+\multirow{6}{*}{Wiki} & Llama-2-7b & 51.4365 & 11.013 \\
+ & Llama-2-7b-ELI5 & 69.1257 & 7.606 \\
+ & Llama-2-7b-Wiki & 55.8206 & 10.695 \\
+ & Llama-2-7b-ELI5-Wiki & 57.5070 & 9.982 \\
+  & Llama-2-7b-ELI5-Cleaned & 60.3884 & 10.037 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 58.3621 & 10.148 \\
+\hline
+\multirow{6}{*}{full} & Llama-2-7b & 48.9020 & 11.636 \\
+ & Llama-2-7b-ELI5 & 68.6513 & 7.855 \\
+ & Llama-2-7b-Wiki & 55.5700 & 10.681 \\
+ & Llama-2-7b-ELI5-Wiki & 56.8602 & 10.314 \\
+  & Llama-2-7b-ELI5-Cleaned & 54.0539 & 11.270 \\
+ & Llama-2-7b-ELI5-Cleaned-Wiki & 57.9690 & 10.054 \\
+\hline
+\end{tabular}
+\caption{FRE and FKG Scores at 7B.}
+\label{tab:flesch_scores_7B}
+\end{table}
+
+Next, in Table \ref{tab:flesch_scores_7B} and Figure \ref{fig:KDE_FKG_7B} we look at how fine-tuning our models affects their Flesch-Kincaid readability metrics.
+We observe that in generally, fine-tuning the models lead to an increase in the Flesch Readability Ease (FRE) score and a decrease in the Flesch-Kincaid grade level (FKG). 
+There are however a few exceptions which are noticeable in Table \ref{tab:flesch_scores_7B}.
+We note that the model trained on just Simple Wikipedia and evaluated on the ELI5 validation set has a lower FRE and a higher FKG than the corresponding base model.
+This indicates that the text is considered more complex on both metrics.
+In addition, the model trained on the cleaned ELI5 dataset has a higher FKG score than the base model, but also a higher FRE score.
+For this model the results are inconclusive and its not clear which model, the fine-tuned model or the base model, is producing simpler text.
+For all other models and benchmarks, we observe that fine-tuning on our datasets leads to an increase in the FRE score and a decrease in the FKG level.
+These observations are also consistent with the KDE plots in Figure \ref{fig:KDE_FKG_7B}, we see that in general our fine-tuned models display stronger peaks at higher values of the FRE metric and lower values of the FKG level.
+The change in distribution is particularly noticeable for the model trained on just the ELI5 dataset, although we caution that this may not be a good indicator this model is actually performing the best.
+We also observe that the model trained on just the Simple Wikipedia QA dataset and evaluated on the ELI5 dataset appears closer in distribution to the base model than the other fine-tuned models.
+
+\begin{figure}
+\includegraphics[scale=.5]{./figures/FRE_7B_ELI5.png}
+\includegraphics[scale=.5]{./figures/FKG_7B_ELI5.png}
+\\
+\includegraphics[scale=.5]{./figures/FRE_7B_Wiki.png}
+\includegraphics[scale=.5]{./figures/FKG_7B_Wiki.png}
+\\
+\includegraphics[scale=.5]{./figures/FRE_7B_full.png}
+\includegraphics[scale=.5]{./figures/FKG_7B_full.png}
+\caption{KDE plots for Flesch-Kincaid Metrics at 7B}
+\label{fig:KDE_FKG_7B}
+\end{figure}
+\
+\\[10pt]
+\noindent\textbf{13B Models}
+\\[10pt]
+Our analysis of the ROUGE, BERTScore, and Flesch-Kincaid metrics at 13B will closely mirror what we observed at 7B parameters.
+We have again included figures for the distribution of the F1 BERTscore, RougeLSum, and the two Flesh-Kincaid metrics for each dataset to see how fine-tuning effects these metrics, see Figure \ref{fig:rouge_bertscore_13B}.
+%We also believe the KDE plots in Figure \ref{fig:rouge_bertscore_13B} give a clearer picture of how fine-tuning effects these metrics in comparison to the results in Tables \ref{tab:rouge_scores_13B}-\ref{tab:FRE_FKG_13B}, although these results are also useful.
+%In Table \ref{tab:rouge_scores_13B} we see that the base Llama-2 model achieves the highest ROUGE score for all metrics on the ELI5 dataset. In addition, models trained on just the ELI5 dataset appear to achieve the highest ROUGE scores when evaluated on the Simple Wikipedia validation dataset and also perform well when evaluated on the dataset containing questions from both ELI5 and the Simple Wikipedia dataset..
+%We also again observe that the base Llama-2 model achieves a noticeably higher ROUGELsum score on all three datasets in comparison to our fine-tuned models and that all models perform the best when evaluated on the ELI5 questions.
+%
+%In Table \ref{tab:bertscores_13B} we also observe that the BERTScores at 13B are similar to those at 7B. 
+%We see that in many cases the base model achieves the highest BERTScore, but also that the differences between all of the models is relatively small.
+%Finally, as we before, we observe that all models achieve higher scores on the ELI5 validation set in comparison to the other two sets.
+%We gain suspect that the models performance, according to these automatic metrics, may be driven more by the pretraining dataset and less by the datasets we fine-tuned on.
+\begin{table}[ht]
+%\centering
+\hspace{-.5in}
+\begin{tabular}{lcccccccc}
 \toprule
-\textbf{Dataset} & \textbf{Model} & \textbf{rouge1} & \textbf{rouge2} & \textbf{rougeL} & \textbf{rougeLsum} \\
+\multicolumn{2}{c}{Dataset} & \multicolumn{1}{c}{rouge1} & \multicolumn{1}{c}{rouge2} & \multicolumn{1}{c}{rougeL} & \multicolumn{1}{c}{rougeLsum} \\
 \midrule
-\multirow{4}{*}{ELI5} & Llama-2-7b & \textbf{0.3796} & \textbf{0.2432} & \textbf{0.3000} & \textbf{0.3222} \\
-& Llama-2-7b-ELI5 & 0.3701 & 0.2140 & 0.2736 & 0.2821 \\
-& Llama-2-7b-wiki & 0.3575 & 0.2083 & 0.2660 & 0.2762 \\
-& Llama-2-7b-ELI5-wiki & 0.3702 & 0.2126 & 0.2733 & 0.2819 \\
+\multirow{6}{*}{ELI5} & Llama-2-13b & \textbf{0.307 (0.110)} & \textbf{0.179 (0.119)} & \textbf{0.232 (0.114)} & \textbf{0.263 (0.111)} \\
+& Llama-2-13b-ELI5 & 0.297 (0.100) & 0.152 (0.087) & 0.204 (0.082) & 0.213 (0.085) \\
+& Llama-2-13b-Wiki & 0.277 (0.097) & 0.146 (0.090) & 0.193 (0.086) & 0.208 (0.089) \\
+& Llama-2-13b-ELI5-Wiki & 0.293 (0.095) & 0.150 (0.085) & 0.203 (0.081) & 0.212 (0.084) \\
+& Llama-2-13b-ELI5-Cleaned & 0.296 (0.103) & 0.154 (0.090) & 0.208 (0.086) & 0.217 (0.089) \\
+& Llama-2-13b-ELI5-Cleaned-Wiki & 0.293 (0.095) & 0.150 (0.083) & 0.203 (0.079) & 0.213 (0.083) \\
 \midrule
-\multirow{4}{*}{wiki} & Llama-2-7b & 0.1923 & 0.0103 & 0.0937 & \textbf{0.1392} \\
-& Llama-2-7b-ELI5 & \textbf{0.2203} & \textbf{0.0125} & \textbf{0.0964} & 0.1271 \\
-& Llama-2-7b-wiki & 0.1826 & 0.0073 & 0.0879 & 0.1165 \\
-& Llama-2-7b-ELI5-wiki & 0.1811 & 0.0076 & 0.0885 & 0.1153 \\
+\multirow{6}{*}{Wiki} & Llama-2-13b & 0.238 (0.083) & 0.104 (0.067) & 0.166 (0.074) & \textbf{0.193 (0.072)} \\
+& Llama-2-13b-ELI5 & 0.201 (0.057) & 0.069 (0.035) & 0.126 (0.039) & 0.138 (0.043) \\
+& Llama-2-13b-Wiki & 0.243 (0.061) & \textbf{0.113 (0.043)} & 0.166 (0.045) & 0.181 (0.053) \\
+& Llama-2-13b-ELI5-Wiki & \textbf{0.248 (0.065)} & 0.113 (0.045) & 0.170 (0.043) & 0.184 (0.053) \\
+& Llama-2-13b-ELI5-Cleaned & 0.210 (0.060) & 0.080 (0.043) & 0.137 (0.050) & 0.150 (0.054) \\
+& Llama-2-13b-ELI5-Cleaned-Wiki & 0.246 (0.055) & 0.111 (0.041) & \textbf{0.171 (0.039)} & 0.184 (0.048) \\
 \midrule
-\multirow{4}{*}{full} & Llama-2-7b & 0.1944 & 0.0087 & 0.0905 & \textbf{0.1400} \\
-& Llama-2-7b-ELI5 & \textbf{0.2243} & \textbf{0.0118} & \textbf{0.0971} & 0.1312 \\
-& Llama-2-7b-wiki & 0.1905 & 0.0079 & 0.0889 & 0.1198 \\
-&Llama-2-7b-ELI5-wiki & 0.1907 & 0.0080 & 0.0894 & 0.1193 \\
+\multirow{6}{*}{full} & Llama-2-13b & 0.254 (0.080) & 0.118 (0.081) & 0.177 (0.079) & \textbf{0.207 (0.077)} \\
+& Llama-2-13b-ELI5 & 0.227 (0.077) & 0.091 (0.071) & 0.147 (0.070) & 0.157 (0.072) \\
+& Llama-2-13b-Wiki & 0.253 (0.075) & 0.120 (0.069) & 0.173 (0.067) & 0.186 (0.067) \\
+& Llama-2-13b-ELI5-Wiki & \textbf{0.262 (0.075)} & \textbf{0.122 (0.068)} & \textbf{0.179 (0.063)} & 0.190 (0.065) \\
+& Llama-2-13b-ELI5-Cleaned & 0.227 (0.079) & 0.092 (0.070) & 0.148 (0.068) & 0.159 (0.070) \\
+& Llama-2-13b-ELI5-Cleaned-Wiki & 0.262 (0.080) & 0.121 (0.064) & 0.176 (0.062) & 0.188 (0.065) \\
 \bottomrule
 \end{tabular}
-\caption{Rouge Scores}
-\label{tab:rouge_scores}
+\caption{ROUGE Scores at 13B}
+\label{tab:rouge_scores_13B}
 \end{table}
 
-\begin{table}[htbp]
+\begin{table}[ht]
 \centering
-\begin{tabular}{ccccc}
+\begin{tabular}{lccccccc}
 \toprule
-\textbf{Dataset} & \textbf{Model} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+Dataset& Model Name  & Precision & Recall & F1 \\
 \midrule
-\multirow{4}{*}{ELI5} & Llama-2-7b & \textbf{0.8429} & 0.8754 & 0.8583 \\
-& Llama-2-7b-ELI5 & 0.8372 & \textbf{0.8799} & 0.8575 \\
-& Llama-2-7b-wiki & 0.8415 & 0.8796 & \textbf{0.8598} \\
-& Llama-2-7b-ELI5-wiki & 0.8399 & 0.8798 & 0.8590 \\
+\multirow{6}{*}{ELI5} & Llama-2-13b & \textbf{0.809 (0.043)} & 0.867 (0.036) & \textbf{0.837 (0.031)} \\
+& Llama-2-13b-ELI5 & 0.799 (0.033) & 0.875 (0.034) & 0.835 (0.026) \\
+& Llama-2-13b-Wiki & 0.799 (0.032) & 0.873 (0.035) & 0.834 (0.026) \\
+& Llama-2-13b-ELI5-Wiki & 0.799 (0.033) & 0.875 (0.034) & 0.834 (0.026) \\
+& Llama-2-13b-ELI5-Cleaned & 0.797 (0.034) & 0.875 (0.034) & 0.834 (0.028) \\
+& Llama-2-13b-ELI5-Cleaned-Wiki & 0.801 (0.033) & \textbf{0.876 (0.034)} & 0.836 (0.027) \\
 \midrule
-\multirow{4}{*}{wiki} & Llama-2-7b & \textbf{0.7879} & 0.8067 & 0.7970 \\
-& Llama-2-7b-ELI5 & 0.7859 & \textbf{0.8093} & \textbf{0.7971} \\
-& Llama-2-7b-wiki & 0.7782 & 0.8019 & 0.7898 \\
-& Llama-2-7b-ELI5-wiki & 0.7783 & 0.8014 & 0.7896 \\
+\multirow{6}{*}{Wiki} & Llama-2-13b & 0.791 (0.047) & 0.849 (0.033) & 0.818 (0.035) \\
+& Llama-2-13b-ELI5 & 0.774 (0.032) & 0.847 (0.025) & 0.808 (0.024) \\
+& Llama-2-13b-Wiki & 0.796 (0.026) & 0.886 (0.022) & 0.838 (0.020) \\
+& Llama-2-13b-ELI5-Wiki & \textbf{0.800 (0.020)} & \textbf{0.887 (0.022)} & \textbf{0.841 (0.017)} \\
+& Llama-2-13b-ELI5-Cleaned & 0.773 (0.041) & 0.848 (0.025) & 0.808 (0.030) \\
+& Llama-2-13b-ELI5-Cleaned-Wiki & 0.798 (0.023) & 0.885 (0.024) & 0.839 (0.019) \\
 \midrule
-\multirow{4}{*}{full} & Llama-2-7b & \textbf{0.7940} & 0.8092 & 0.8014 \\
-& Llama-2-7b-ELI5 & 0.7933 & \textbf{0.8116} & \textbf{0.8022} \\
-& Llama-2-7b-wiki  & 0.7861 & 0.8048 & 0.7952 \\
-& Llama-2-7b-ELI5-wiki & 0.7841 & 0.8046 & 0.7941 \\
+\multirow{6}{*}{full} & Llama-2-13b & 0.795 (0.036) & 0.862 (0.029) & 0.827 (0.026) \\
+& Llama-2-13b-ELI5 & 0.775 (0.036) & 0.862 (0.029) & 0.816 (0.027) \\
+& Llama-2-13b-Wiki & 0.800 (0.028) & 0.889 (0.026) & 0.842 (0.023) \\
+& Llama-2-13b-ELI5-Wiki & 0.801 (0.027) & 0.889 (0.026) & 0.842 (0.021) \\
+& Llama-2-13b-ELI5-Cleaned & 0.775 (0.041) & 0.863 (0.030) & 0.815 (0.033) \\
+& Llama-2-13b-ELI5-Cleaned-Wiki & \textbf{0.801 (0.025)} & \textbf{0.891 (0.024)} & \textbf{0.843 (0.020)} \\
 \bottomrule
 \end{tabular}
-\caption{Precision, Recall, and F1 BERTScores}
-\label{tab:scores}
+\caption{BERTScores at 13B}
+\label{tab:bertscores_13B}
 \end{table}
 
-It's difficult to interpret or make sense of these results, somehow the base Llama-2 model often outperforms the fine-tuned models and the model trained on just the ELI5 dataset often performs very well on the Simple Wikipedia validation set!
-It is probably best to take these numbers with a grain of salt. The BERTScore metrics tend to differ by very small amounts, e.g. the difference in F1 scores between the base model and the model trained on ELI5 for the Simple Wikipedia validation set differ by just 0.001.
-In addition, we of course do not know on what data the original Llama-2 model was trained and if there is data leakage.
 
-Finally, let's look at the Flesch readability ease (FRE) and Flesch-Kincaid grade (FKG) metrics. 
-\begin{table}[h]
+\begin{figure}
+\includegraphics[scale=.5]{./figures/rougelsum_13B_eli5}
+\includegraphics[scale=.5]{./figures/bertscore_F1_13B_eli5}
+\includegraphics[scale=.5]{./figures/rougelsum_13B_wiki}
+\includegraphics[scale=.5]{./figures/bertscore_F1_13B_wiki}
+\includegraphics[scale=.5]{./figures/rougelsum_13B_full}
+\includegraphics[scale=.5]{./figures/bertscore_F1_13B_full}
+\caption{ROUGE and BERTScores for the 13B models}
+\label{fig:rouge_bertscore_13B}
+\end{figure}
+
+
+\begin{figure}
+\includegraphics[scale=.5]{./figures/FRE_13B_ELI5.png}
+\includegraphics[scale=.5]{./figures/FKG_13B_ELI5.png}
+\\
+\includegraphics[scale=.5]{./figures/FRE_13B_Wiki.png}
+\includegraphics[scale=.5]{./figures/FKG_13B_Wiki.png}
+\\
+\includegraphics[scale=.5]{./figures/FRE_13B_full.png}
+\includegraphics[scale=.5]{./figures/FKG_13B_full.png}
+\caption{FRE and FKG scores at 13B}
+\label{fig:FRE_FKG_13B}
+\end{figure}
+
+Many of our observations for the 7B models carry over to the 13B models. 
+First, we see that the base Llama-2-13B model achieves the highest ROUGE scores on the ELI5 questions, and the difference is particularly significant on the RougeLsum metric (it also achieves the highest rouge1 score, but the differences between the models here are likely insignificant).
+As we can see from both the table and the KDE plots, our fine-tuned models in general achieve lower scores and are clustered close together.
+Similarly, the base Llama-2-13B model also generally performs better according to the BERTScore metrics, but here the differences are smaller and distributions all peak around the same values.
+The one noticeable difference is that the base-model appears to have slightly heavier tails on the KDE plot for the F1 score.
+
+On the Simple Wikipedia questions, we see that some of our fine-tuned models have a higher Rouge score than the base model, but all the results are within one standard deviation.
+From the KDE plots for the RougeLSum score, we notice that the model trained on the ELI5+simple wikipedia dataset is peaked more strongly at lower values, while the base model has heavier tails to the right. 
+This seems to indicate the base model is achieving better performance, according to this metric.
+For the BERTScores, on the other hand, we see that the model trained on the ELI5 + Wikipedia questions does have a noticeably higher recall and F1 scores in comparison to the base model, while the difference in precision is relatively small.
+On the KDE plot, we do see that the models trained on Simple Wikipedia alone or in combination with ELI5 are peaked at a higher value than the base-model, while the base-model does have slightly heavier tails.
+The same analysis carries over essentially unchanged for the models evaluated on ELI5 and Simple Wikipedia questions simultaneously.
+The models trained on ELI5 and Simple Wikipedia questions have comparable ROUGE scores in comparison to the base model and also have higher recall and F1 on the BERTScore metric.
+We also notice that the difference in the tails of the distribution of F1-scores for the base model and the models fine-tuned on ELI5 + Simple Wikipedia are distinguishable on the plot shown. 
+
+\begin{table}
 \centering
-\begin{tabular}{|c|c|c|c|}
-\hline
-\textbf{Dataset} & \textbf{Model} & \textbf{FRE} & \textbf{FKG} \\
-\hline
-\multirow{4}{*}{ELI5} & Llama-2-7b & 58.2425 & 10.075 \\
-& Llama-2-7b-ELI5 & 67.6357 & 8.148  \\
-& Llama-2-7b-wiki & 58.7145 & 10.526 \\
-& Llama-2-7b-ELI5-wiki & 65.6862 &8.704  \\
-\hline
-\multirow{4}{*}{wiki} & Llama-2-7b-hf & 64.1040 & 8.172\\
-& Llama-2-7b-ELI5 & 72.5682&6.988 \\
-& Llama-2-7b-wiki & 66.5824 &8.055\\
-& Llama-2-7b-ELI5-wiki & 65.7558 &8.239\\
-\hline
-\multirow{4}{*}{full} & Llama-2-7b & 65.0452&8.472 \\
-& Llama-2-7b-ELI5 & 72.5278&7.092 \\
-& Llama-2-7b-wiki & 66.8147&8.252 \\
-& Llama-2-7b-ELI5-wiki & 65.8295 &8.417\\
-\hline
+\begin{tabular}{cccc}
+\toprule
+Dataset & Model Name & FRE & FKG \\
+\midrule
+ELI5 & Llama-2-13b & 55.9093 & 9.932 \\
+ & Llama-2-13b-ELI5 & 55.9616 & 10.142 \\
+ & Llama-2-13b-Wiki & 43.5825 & 13.763 \\
+  & Llama-2-13b-ELI5-Wiki & 64.5636 & 8.433 \\
+ & Llama-2-13b-ELI5-Cleaned & 62.4666 & 8.907 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 61.6679 & 9.298 \\
+\midrule
+Wiki & Llama-2-13b & 55.7939 & 9.999 \\
+ & Llama-2-13b-ELI5 & 67.1027 & 7.994 \\
+ & Llama-2-13b-Wiki & 51.8992 & 11.595 \\
+  & Llama-2-13b-ELI5-Wiki & 60.8368 & 9.324 \\
+ & Llama-2-13b-ELI5-Cleaned & 67.8129 & 7.885 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 57.7417 & 9.913 \\
+ \midrule
+Full & Llama-2-13b & 55.5964 & 10.028 \\
+ & Llama-2-13b-ELI5 & 63.1428 & 8.895 \\
+ & Llama-2-13b-Wiki & 52.3647 & 11.296 \\
+  & Llama-2-13b-ELI5-Wiki & 59.5139 & 9.501 \\
+ & Llama-2-13b-ELI5-Cleaned & 61.2361 & 9.339 \\
+ & Llama-2-13b-ELI5-Cleaned-Wiki & 56.9492 & 10.218 \\
+\bottomrule
 \end{tabular}
-\caption{Flesch Readability Metrics}
+\caption{FRE and FKG Scores at 13B}
+\label{tab:FRE_FKG_13B}
 \end{table}
-We see that for the most part, the fine-tuned models have a higher readability score and a lower grade level.
-There are two noticeable exceptions, the model trained on Simple Wikipedia QA pairs and evaluated on the ELI5 validation set has a higher grade level than the original base model.
-In addition, the model trained on ELI5 and Simple Wikipedia has a slightly higher grade level than the base model when evaluated on the Simple Wikipedia validation set. 
-In the former case, the grade level went up by 0.451 while the readability also went up by 0.472.
-Given that a text is considered simpler if its grade level is lower and its readability is higher, in this case our automatic metrics are inconclusive.
-In the latter case, the readability also went up by about 1.6518 points while the grade level went up by 0.067.
-Once again, in this case our metrics for readability are moving in opposite directions. 
-Finally, from the table we also see that the model trained on just ELI5 tends to produce the simplest text. 
 
+Finally, in Table \ref{tab:FRE_FKG_13B} we look at the Flesch-Kincaid readability metrics for the 13B models. 
+We observe again the our fine-tuned models generally have a higher Flesch Readability ease score and a lower Flesch-Kincaid grade level.
+However, there are some exceptions to this rule.
+In particular, for all three datasets the model trained on just Simple Wikipedia QA pairs has a lower FRE score and a higher FKG level, so according to both metrics this text is more ``complex".
+This may not be entirely surprising, Simple Wikipedia articles are still written in a more dry and more formal style than Reddit posts, and articles may not always be written in a simple way. 
+It would be interesting to see if this trend continues to even larger models, i.e. if we trained a 70B model on just the Simple Wikipedia QA pairs would it still be worse than the base 13B models, according to these two metrics, or would the trend reverse?
+In Figure \ref{fig:FRE_FKG_13B} we also notice that, with the exception of the model trained solely on Simple Wikipedia questions, the distribution of scores for all models look roughly the same.
+However, our fine-tuned models do display a noticeably higher peak at higher values of the Flesch-Readability ease score and lower values of the Flesch-Kincaid grade level, which appears to indicate the text is less complex.
 
-\subsubsection{MT(S)-Bench}
+\subsubsection{Judging the Validation Set with GPT-4}
+Finally, its time to move away from the world of automatic metrics and start to consider more fine-grained and intelligent ways to evaluate the output of generative models.
+One option is to crowdsource this problem to human volunteers and ask them to rank or score various model's responses.
+An alternative, and faster option, is to ask an intelligent AI, such as GPT-4, to score the model responses. 
+This is the approach we will take in this section, namely we will simply ask GPT-4 to assign a score to each answer according to a custom prompt.
+Inspired by the prompt used in MT-bench \cite{zheng2023judging}, we decided to prompt GPT-4 as follows:
+\\
+\begin{displayquote}
+$[$Instruction$]$\newline Please act as an impartial judge and
+    evaluate the quality of the response provided by an AI assistant
+    to the user question displayed below. Your evaluation should consider
+    factors such as the following:\newline\newline- **Simplicity**: Is the response
+    clear and straightforward enough for middle or high school students to
+    understand?\newline- **Helpfulness**: Does the response effectively address
+    the query?\newline- **Relevance**: Does the response directly pertain to the
+    question?\newline- **Accuracy**: Is the response factually correct?\newline-
+    **Depth \& Creativity**: Assess richness without favoring excessive
+    detail.\newline\newline Aim for a holistic assessment. Begin your evaluation by
+    providing a short explanation. Be as objective as possible. After
+    providing your explanation, you must rate the response on a scale
+    of 1 to 10 by strictly following this format: `[[rating]]',
+    for example: `Rating: [[5]]'.\newline\newline[Question]\newline{\{question\}}\newline\newline
+    [The Start of Assistant's Answer]\newline{\{answer\}}\newline[The End of Assistant's
+    Answer]
+\end{displayquote}
 
-In this section we will investigate how well our models perform on a new MT-bench like dataset.
-The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
-There are two types of completion tasks, single-turn and multi-turn.
-For a single-turn problem, the model is given a prompt and asked to complete it.
-For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
-Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
+Here the text in \{question\} and \{answer\} correspond to the question in one of our datasets and the model generated answer, respectively.
+Given that GPT-4 is not cheap, we decided to only evaluate our models on the small validation set containing 100 questions from both ELI5 and Simple Wikipedia.
 
-\begin{center}
-\begin{tabular}{c|c|c}
-    \hline
-    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
-    \hline
-    Llama-2-7b-chat-hf &  9.40 & 8.80\\ 
-    Llama-2-7b-ELI5-wiki-simple-merge & 6.683333 & 3.533333  \\
-    Llama-2-7b-ELI5-wiki &  5.975000 &  2.966667 \\
-    Llama-2-7b-wiki &  5.108333 & 1.616667  \\
-    Llama-2-7b-ELI5 &  4.116667 & 1.733333  \\
-    Llama-2-7b-wiki-simple-merge &  2.300000& 1.033333  \\
-    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
-    Llama-2-7b-hf & 1.066667 &1.000000 \\
-    \hline
+\begin{table}
+\centering
+\begin{tabular}{|l|c|}
+\hline
+Model Name & Score \\
+\hline
+Llama-2-7b-ELI5-Cleaned-Wiki & 3.89 \\
+Llama-2-7b-Wiki & 3.58 \\
+Llama-2-7b-ELI5-Wiki & 3.45 \\
+Llama-2-7b & 2.92 \\
+Llama-2-7b-ELI5-Cleaned & 2.58 \\
+Llama-2-7b-ELI5 & 2.43 \\
+\hline\hline 
+Llama-2-13b-ELI5-Wiki & 4.91 \\
+Llama-2-13b-ELI5-Cleaned-Wiki & 4.77 \\
+Llama-2-13b-Wiki & 4.53 \\
+Llama-2-13b & 3.43 \\
+Llama-2-13b-ELI5-Cleaned & 3.27 \\
+Llama-2-13b-ELI5 & 3.17 \\
+\hline
 \end{tabular}
-\end{center}
+\caption{GPT-4 judgements at 7B and 13B}
+\label{tab:GPT4-judgements}
+\end{table}
 
-Next let's look at the readability scores of each model on the single prompt:
+\begin{figure}
+\includegraphics[scale=.6]{./figures/GPT4_7B_scores.png}
+\includegraphics[scale=.6]{./figures/GPT4_13B_scores.png}
+\caption{KDE Plots for GPT-4 score distribution by model.}
+\label{fig:GPT_4_scores}
+\end{figure}
+  
+Our results are summarized in Table \ref{tab:GPT4-judgements} and the different score distributions are visualized in Figure \ref{fig:GPT_4_scores}.
+In Table \ref{tab:GPT4-judgements} we ranked each model from highest to lowest and also separated the results by the size of the base model.
+At both 7B and 13B, the three best performing models are the ones trained on ELI5 + Simple Wikipedia (using our original ELI5 SFT dataset or the cleaned one) and the one trained on just Simple Wikipedia.
+By contrast, the model trained on just ELI5 performs worse than the base model at both 7B and 13B.
+We think these results indicate that training on the more encyclopedic text of Simple Wikipedia helps the model generate more cogent answers.
 
-\begin{center}
-\begin{tabular}{c|c|c}
-    \hline
-    \textbf{Model} & \textbf{FRE}& \textbf{FKG} \\
-    \hline
-    Llama-2-7b-chat-hf &  42.21 & 12.50 \\ 
-    Llama-2-7b-ELI5-wiki-simple-merge & 60.55 & 9.60  \\
-    Llama-2-7b-ELI5-wiki &  53.41 &  10.20 \\
-    Llama-2-7b-wiki &  91.41 & 3.90 \\
-    Llama-2-7b-ELI5 &  63.19 & 8.50 \\
-    Llama-2-7b-wiki-simple-merge &  96.48& 2.00  \\
-    Llama-2-7b-ELI5-simple-merge & 78.65 & 4.70  \\
-    Llama-2-7b-hf & 29.86 &13.10 \\
-    \hline
-\end{tabular}
-\end{center}
+From the KDE plots for 7B models shown at the top of Figure \ref{fig:GPT_4_scores}, we observe that, with the exception of our models fine-tuned only on ELI5 data, our models have a relatively flatter distribution than the base model.
+For example, the model fine-tuned on questions from ELI5-cleaned + Simple Wikipedia achieves its maximum at 4 and generally has more support at higher scores than the base model. 
+However, the models fine-tuned only on questions from ELI5 do perform noticeably worse than the base model.
+At 13B we see a similar phenomenon at the bottom of Figure \ref{fig:GPT_4_scores}.
+Here we see that the models trained on the combined ELI5 + Simple Wikipedia data have more support at higher scores than the base model. 
+The models trained on just ELI5 data do have peaks further to the right than the base model, but they also drop more sharply once we look at scores $\geq 7$.
+
+Overall, one takeaway from all these results is that training on a combination of ELI5 and Simple Wikipedia data appears to lead to the best models and that it is important to use either an intelligent AI or humans to judge the output of generative models.
+While the models trained on just ELI5 data were labelled as more readable, according to the Flesch-Kincaid reading metrics, they were also given lower scores by GPT-4 on the quality of their answers.
+From our non-scientific perusal of the answers generated by these models, we do also observe that in general training on both ELI5 + Simple Wikipedia did lead to the best results.
 
 
+%\subsubsection{MT(S)-Bench}
+%
+%In this section we will investigate how well our models perform on a new MT-bench like dataset.
+%The idea of MT-bench is to use a LLM, like GPT-4, to judge the output of other, smaller LLMs. 
+%There are two types of completion tasks, single-turn and multi-turn.
+%For a single-turn problem, the model is given a prompt and asked to complete it.
+%For a multi-turn problem, the model is prompted with one complete turn of a conversation (i.e. question and answer) and then asked to reply to a new, follow-up question. 
+%Given that our models are only trained for single-turn problems, we will see that they do not perform well on multi-turn problems.
+%
+%\begin{center}
+%\begin{tabular}{c|c|c}
+%    \hline
+%    \textbf{Model} & \textbf{Single-Turn score}& \textbf{Multi-Turn score} \\
+%    \hline
+%    Llama-2-7b-chat &  9.40 & 8.80\\ 
+%    Llama-2-7b-ELI5-Wiki-simple-merge & 6.683333 & 3.533333  \\
+%    Llama-2-7b-ELI5-Wiki &  5.975000 &  2.966667 \\
+%    Llama-2-7b-Wiki &  5.108333 & 1.616667  \\
+%    Llama-2-7b-ELI5 &  4.116667 & 1.733333  \\
+%    Llama-2-7b-Wiki-simple-merge &  2.300000& 1.033333  \\
+%    Llama-2-7b-ELI5-simple-merge & 2.000000 & 1.200000  \\
+%    Llama-2-7b & 1.066667 &1.000000 \\
+%    \hline
+%\end{tabular}
+%\end{center}
+%
+%Next let's look at the readability scores of each model on the single prompt:
+%
+%\begin{center}
+%\begin{tabular}{c|c|c}
+%    \hline
+%    \textbf{Model} & \textbf{FRE}& \textbf{FKG} \\
+%    \hline
+%    Llama-2-7b-chat &  42.21 & 12.50 \\ 
+%    Llama-2-7b-ELI5-Wiki-simple-merge & 60.55 & 9.60  \\
+%    Llama-2-7b-ELI5-Wiki &  53.41 &  10.20 \\
+%    Llama-2-7b-Wiki &  91.41 & 3.90 \\
+%    Llama-2-7b-ELI5 &  63.19 & 8.50 \\
+%    Llama-2-7b-Wiki-simple-merge &  96.48& 2.00  \\
+%    Llama-2-7b-ELI5-simple-merge & 78.65 & 4.70  \\
+%    Llama-2-7b & 29.86 &13.10 \\
+%    \hline
+%\end{tabular}
+%\end{center}
+%
+%
+
+
+
+\newpage
 \bibliographystyle{utphys}
 \bibliography{refs}
 

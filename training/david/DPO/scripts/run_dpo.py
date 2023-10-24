@@ -640,6 +640,17 @@ def training_function(args):
     model.to(device)
 
     if args.use_margin:
+        dpo_trainer = DPOTrainer_with_margins(model,
+            args=training_args,
+            beta=args.beta,
+            rho=args.rho,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=tokenizer,
+            max_prompt_length=args.max_prompt_length,
+            max_length=args.max_length,
+            truncation_mode=args.truncation_mode)
+    else:
         dpo_trainer = DPOTrainer(
             model,
             args=training_args,
@@ -651,17 +662,7 @@ def training_function(args):
             max_length=args.max_length,
             truncation_mode=args.truncation_mode
         )
-    else:
-        dpo_trainer = DPOTrainer_with_margins(model,
-            args=training_args,
-            beta=args.beta,
-            rho=args.rho,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-            tokenizer=tokenizer,
-            max_prompt_length=args.max_prompt_length,
-            max_length=args.max_length,
-            truncation_mode=args.truncation_mode)
+
     
     #if not args.resume_from_checkpoint:
     #    original_performance = dpo_trainer.evaluate()

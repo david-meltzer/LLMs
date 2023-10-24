@@ -11,6 +11,5 @@
 \BOOKMARK [2][-]{subsection.3.1}{How to Define The Inference Model}{section.3}% 11
 \BOOKMARK [2][-]{subsection.3.2}{Supervised Fine-Tuning}{section.3}% 12
 \BOOKMARK [3][-]{subsubsection.3.2.1}{HuggingFace Leaderboard}{subsection.3.2}% 13
-\BOOKMARK [3][-]{subsubsection.3.2.2}{Judging the Validation Set with GPT-4}{subsection.3.2}% 14
-\BOOKMARK [3][-]{subsubsection.3.2.3}{ROUGE and BERTScore}{subsection.3.2}% 15
-\BOOKMARK [3][-]{subsubsection.3.2.4}{MT\(S\)-Bench}{subsection.3.2}% 16
+\BOOKMARK [3][-]{subsubsection.3.2.2}{ROUGE and BERTScore}{subsection.3.2}% 14
+\BOOKMARK [3][-]{subsubsection.3.2.3}{Judging the Validation Set with GPT-4}{subsection.3.2}% 15
