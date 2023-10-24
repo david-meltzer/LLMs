@@ -561,7 +561,7 @@ def training_function(args):
     )
 
     if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token 
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
        
     if not args.bf16:
         fp16 = True

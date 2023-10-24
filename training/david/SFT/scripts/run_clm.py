@@ -623,9 +623,10 @@ def training_function(args):
         use_auth_token=args.hf_token
     )
 
-    # Set pad_token if None (using eos_token)
+    # Set pad_token if None (using a custom new token, see https://github.com/huggingface/transformers/issues/22794
+    # since gradients from pad are ignored so if eos_token == pad_token, the model cannot learn to generate EOS)
     if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token 
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
     # Determine whether to use bf16 or not
     fp16 = True if not args.bf16 else False
