@@ -561,6 +561,8 @@ def training_function(args):
 
     if tokenizer.pad_token is None:
         tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+        model.resize_token_embeddings(len(tokenizer))
+
         
     if not args.bf16:
         fp16 = True

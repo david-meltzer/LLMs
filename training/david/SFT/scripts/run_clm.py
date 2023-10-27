@@ -16,6 +16,7 @@ from transformers.trainer_callback import EarlyStoppingCallback
 
 import evaluate
 import pandas as pd
+import json
 
 from datasets import load_from_disk
 import torch
@@ -119,7 +120,7 @@ def parse_arge():
     parser.add_argument(
         "--output_data_dir",
         type=str,
-        helper = 'output directory to save data.',
+        help = 'output directory to save data.',
     #    default=os.environ["SM_OUTPUT_DATA_DIR"]
     )
 
@@ -127,6 +128,13 @@ def parse_arge():
         "--dataset_path",
         type=str,
         help="Path used to load dataset."
+    )
+
+    parser.add_argument(
+        "--data_config_path",
+        type=str,
+        default=None,
+        help="Path to the JSON data config file."
     )
 
     parser.add_argument(
@@ -379,12 +387,12 @@ def parse_arge():
         if args.hf_token is None:
             raise ValueError("--hub_token is required when pushing to Hub")
 
-    # Import necessary modules if using flash attention
-    if args.use_flash_attention:
-        import utils
-        from utils.llama_patch import replace_attn_with_flash_attn
-        from utils.llama_patch import forward
-        from utils.llama_patch import upcast_layer_for_flash_attention
+    # deprecated?
+#    # Import necessary modules if using flash attention
+##    if args.use_flash_attention:
+#        from utils.llama_patch import replace_attn_with_flash_attn
+##        from utils.llama_patch import forward
+ #       from utils.llama_patch import upcast_layer_for_flash_attention
 
     return args
 
@@ -534,14 +542,15 @@ def training_function(args):
     # Set seed for reproducibility
     set_seed(args.seed)
 
+    # deprecated?
     # Use Flash Attention if compatible GPU
-    if args.use_flash_attention:
-        if torch.cuda.get_device_capability()[0] >= 8:
-            from utils.llama_patch import replace_attn_with_flash_attn
-            print("using flash attention")
-            replace_attn_with_flash_attn()
-        else:
-            raise ValueError('GPU is not compatible with flash attention. Use Ampere device.')
+#    if args.use_flash_attention:
+##        if torch.cuda.get_device_capability()[0] >= 8:
+ #           from utils.llama_patch import replace_attn_with_flash_attn
+ #           print("using flash attention")
+ #           replace_attn_with_flash_attn()
+ #       else:
+ #           raise ValueError('GPU is not compatible with flash attention. Use Ampere device.')
 
     # add _qlora to repo_id and run_name if using peft.
     if args.use_peft:
@@ -551,13 +560,17 @@ def training_function(args):
             args.run_name += f'_qlora'
 
     # Initialize W&B for logging
+    if args.data_config_path:
+        with open(args.data_config_path, 'r') as f:
+            config_dict = json.load(f)
     if args.report_to_wandb:
         wandb.login(key=args.wandb_token)
         wandb.init(
             job_type='training',
             project=args.project_name,
             entity=args.entity,
-            name = args.run_name
+            name = args.run_name,
+            config=config_dict,
         )
         
     print(f'loading from {args.dataset_path}')
@@ -588,10 +601,26 @@ def training_function(args):
         device_map="auto",
         trust_remote_code=True,
         quantization_config=bnb_config if args.use_peft else None,
-        use_auth_token=args.hf_token
+        use_auth_token=args.hf_token,
+        use_flash_attention_2=True if args.use_flash_attention else False,
     )
+    if args.use_flash_attention:
+        print('Using flash attention')
     
     model.config.pretraining_tp = 1
+
+    # Initialize tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model_id,
+        use_auth_token=args.hf_token
+    )
+
+    # Set pad_token if None (using a custom new token, see https://github.com/huggingface/transformers/issues/22794
+    # since gradients from pad are ignored so if eos_token == pad_token, the model cannot learn to generate EOS)
+    if tokenizer.pad_token is None:
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+        model.resize_token_embeddings(len(tokenizer))
+        # does this need to be done before quantization?
     
     # Identify target modules for quantization.
     if args.use_peft:
@@ -609,6 +638,7 @@ def training_function(args):
 
     # Prepare model for k-bit training (8-bit or 4-bit)
     if args.load_in_8bit or args.load_in_4bit:
+        print('')
         model = prepare_model_for_kbit_training(
             model, use_gradient_checkpointing=args.gradient_checkpointing
         )
@@ -616,17 +646,6 @@ def training_function(args):
     # Enable gradient checkpointing, if specified
     if args.gradient_checkpointing:
         model.gradient_checkpointing_enable()
-
-    # Initialize tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.model_id,
-        use_auth_token=args.hf_token
-    )
-
-    # Set pad_token if None (using a custom new token, see https://github.com/huggingface/transformers/issues/22794
-    # since gradients from pad are ignored so if eos_token == pad_token, the model cannot learn to generate EOS)
-    if tokenizer.pad_token is None:
-        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
     # Determine whether to use bf16 or not
     fp16 = True if not args.bf16 else False
@@ -669,14 +688,15 @@ def training_function(args):
     )
 
     # Use Flash Attention if specified
-    if args.use_flash_attention:
-        from utils.llama_patch import forward    
-        from utils.llama_patch import upcast_layer_for_flash_attention
-        assert model.model.layers[0].self_attn.forward.__doc__ == forward.__doc__, "Model is not using flash attention"
-        
-        torch_dtype = torch.bfloat16 if args.bf16 else torch.float16 if args.fp16 else torch.float32
-        print(f'TORCH DTYPE IS {torch_dtype}')
-        model = upcast_layer_for_flash_attention(model, torch_dtype)
+    # currently replaced by arg passed to from_pretrained since HF added flash2 support to transformers
+#    if args.use_flash_attention:
+#        from utils.llama_patch import forward    
+#        from utils.llama_patch import upcast_layer_for_flash_attention
+#        assert model.model.layers[0].self_attn.forward.__doc__ == forward.__doc__, "Model is not using flash attention"
+#        
+#        torch_dtype = torch.bfloat16 if args.bf16 else torch.float16 if args.fp16 else torch.float32
+#        print(f'TORCH DTYPE IS {torch_dtype}')
+#        model = upcast_layer_for_flash_attention(model, torch_dtype)
 
     # get PEFT use_peft is true.
     if args.use_peft:
@@ -695,7 +715,7 @@ def training_function(args):
         formatting_func = formatting_prompts_func,
         packing = False,
         data_collator = collator,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.patience)]
+#        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.patience)]
     )
     
     # Continue training from the latest checkpoint if specified
